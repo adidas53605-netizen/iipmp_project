@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ action }} - IIPMP{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                    <h5 class="mb-0 fw-bold text-navy" style="color: #003366;">
+                        {{ action }} Milestone
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <span class="text-muted small">Project:</span>
+                        <h6 class="fw-bold">{{ project.name }}</h6>
+                    </div>
+
+                    {% if form.errors %}
+                    <div class="alert alert-danger shadow-sm">
+                        <ul class="mb-0 ps-3">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label small fw-bold">Milestone Name *</label>
+                            {{ form.name }}
+                        </div>
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.target_date.id_for_label }}" class="form-label small fw-bold">Target Date *</label>
+                                {{ form.target_date }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.completion_date.id_for_label }}" class="form-label small fw-bold">Completion Date</label>
+                                {{ form.completion_date }}
+                                <div class="form-text small">Leave empty if not completed</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label for="{{ form.status.id_for_label }}" class="form-label small fw-bold">Status *</label>
+                                {{ form.status }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.order.id_for_label }}" class="form-label small fw-bold">Order (Sequence)</label>
+                                {{ form.order }}
+                                <div class="form-text small">Order in timeline (e.g. 1, 2, 3)</div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                            <a href="{% url 'project_detail' project.project_id|default:project.id %}" class="btn btn-light px-4">Cancel</a>
+                            <button type="submit" class="btn btn-primary px-4" style="background-color: #003366;">Save Milestone</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const inputs = document.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            if (input.type !== 'submit' && input.type !== 'hidden') {
+                input.classList.add('form-control');
+                if (input.tagName === 'SELECT') {
+                    input.classList.add('form-select');
+                    input.classList.remove('form-control');
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

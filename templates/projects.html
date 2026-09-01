@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Projects - IIPMP{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1" style="color: #003366; font-weight: 700;">Infrastructure Projects</h2>
+            <p class="text-muted mb-0">Browse and filter through all monitored projects</p>
+        </div>
+        {% if user.is_authenticated %}
+        <div>
+            <a href="{% url 'project_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus me-1"></i> Add New Project</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-body bg-light rounded">
+            <form method="GET" action="{% url 'project_list' %}" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Search</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-search"></i></span>
+                        <input type="text" name="search" class="form-control" placeholder="Project Name or ID..." value="{{ request.GET.search|default:'' }}">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Ministry</label>
+                    <select name="ministry" class="form-select">
+                        <option value="">All Ministries</option>
+                        {% for min in ministries %}
+                        <option value="{{ min }}" {% if request.GET.ministry == min %}selected{% endif %}>{{ min }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">State</label>
+                    <select name="state" class="form-select">
+                        <option value="">All States</option>
+                        {% for st in states %}
+                        <option value="{{ st }}" {% if request.GET.state == st %}selected{% endif %}>{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="not_started" {% if request.GET.status == 'not_started' %}selected{% endif %}>Not Started</option>
+                        <option value="ongoing" {% if request.GET.status == 'ongoing' %}selected{% endif %}>Ongoing</option>
+                        <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="delayed" {% if request.GET.status == 'delayed' %}selected{% endif %}>Delayed</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Risk Level</label>
+                    <select name="risk" class="form-select">
+                        <option value="">All Risks</option>
+                        <option value="low" {% if request.GET.risk == 'low' %}selected{% endif %}>Low</option>
+                        <option value="medium" {% if request.GET.risk == 'medium' %}selected{% endif %}>Medium</option>
+                        <option value="high" {% if request.GET.risk == 'high' %}selected{% endif %}>High</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <button type="submit" class="btn w-100" style="background-color: #003366; color: white;">Filter</button>
+                </div>
+            </form>
+            {% if request.GET %}
+            <div class="mt-2 text-end">
+                <a href="{% url 'project_list' %}" class="text-danger small text-decoration-none"><i class="fa-solid fa-times me-1"></i>Clear all filters</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Results Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="text-muted mb-0">Showing {{ projects|length }} projects</h6>
+        <div>
+            <!-- Pagination could go here if implemented -->
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover project-table align-middle mb-0">
+                <thead style="background-color: #f8f9fa;">
+                    <tr>
+                        <th scope="col" class="py-3 px-3 border-0 text-muted">#</th>
+                        <th scope="col" class="py-3 border-0 text-muted">Project Details</th>
+                        <th scope="col" class="py-3 border-0 text-muted">Location & Agency</th>
+                        <th scope="col" class="py-3 border-0 text-muted">Financials (₹ Cr)</th>
+                        <th scope="col" class="py-3 border-0 text-muted" style="width: 150px;">Progress</th>
+                        <th scope="col" class="py-3 border-0 text-muted">Status / Risk</th>
+                        <th scope="col" class="py-3 px-3 border-0 text-end text-muted">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project in projects %}
+                    <tr>
+                        <td class="px-3 text-muted">{{ forloop.counter }}</td>
+                        <td>
+                            <a href="{% url 'project_detail' project.project_id|default:project.id %}" class="text-decoration-none fw-bold" style="color: #003366;">{{ project.name }}</a>
+                            <div class="small text-muted mt-1">ID: {{ project.project_id }} | {{ project.ministry }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-medium">{{ project.state }}</div>
+                            <div class="small text-muted">{{ project.implementing_agency }}</div>
+                        </td>
+                        <td>
+                            <div class="d-flex flex-column">
+                                <span class="small"><span class="text-muted">Appr:</span> ₹{{ project.approved_cost|floatformat:1 }} Cr</span>
+                                <span class="small"><span class="text-muted">Exp:</span> ₹{{ project.expenditure|floatformat:1 }} Cr</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span>{{ project.physical_progress|default:0|floatformat:1 }}%</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar {% if project.physical_progress >= 75 %}bg-success{% elif project.physical_progress >= 40 %}bg-primary{% else %}bg-warning{% endif %}" role="progressbar" style="width: {{ project.physical_progress|default:0 }}%;" aria-valuenow="{{ project.physical_progress|default:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="mb-1">
+                                {% if project.status == 'completed' %}
+                                <span class="badge bg-success w-100">Completed</span>
+                                {% elif project.status == 'ongoing' %}
+                                <span class="badge bg-primary w-100">Ongoing</span>
+                                {% elif project.status == 'delayed' %}
+                                <span class="badge bg-danger w-100">Delayed</span>
+                                {% else %}
+                                <span class="badge bg-secondary w-100">Not Started</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                {% if project.risk_level == 'low' or project.risk == 'low' %}
+                                <span class="badge bg-success bg-opacity-25 text-success border border-success w-100">Low Risk</span>
+                                {% elif project.risk_level == 'medium' or project.risk == 'medium' %}
+                                <span class="badge bg-warning bg-opacity-25 text-warning border border-warning w-100">Med Risk</span>
+                                {% elif project.risk_level == 'high' or project.risk == 'high' %}
+                                <span class="badge bg-danger bg-opacity-25 text-danger border border-danger w-100">High Risk</span>
+                                {% else %}
+                                <span class="badge bg-light text-dark border w-100">N/A</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-3 text-end">
+                            <a href="{% url 'project_detail' project.project_id|default:project.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <div class="text-muted mb-3"><i class="fa-solid fa-folder-open fa-3x"></i></div>
+                            <h5>No projects found</h5>
+                            <p class="text-muted">No projects match your current filter criteria.</p>
+                            <a href="{% url 'project_list' %}" class="btn btn-outline-secondary btn-sm">Clear Filters</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

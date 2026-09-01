@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Analytics - IIPMP{% endblock %}
+{% block nav_analytics %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border: 1px solid #e9ecef; margin-bottom: 24px; height: 100%; }
+    .chart-header { padding: 15px 20px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #003366; background-color: #f8f9fa; border-top-left-radius: 8px; border-top-right-radius: 8px; }
+    .chart-body { padding: 20px; position: relative; height: 350px; width: 100%; display: flex; align-items: center; justify-content: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4">
+    <div class="mb-4">
+        <h2 class="mb-1 fw-bold" style="color: #003366;">Project Analytics</h2>
+        <p class="text-muted">In-depth analysis and visual insights of infrastructure projects</p>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="row g-4 mb-4">
+        <!-- Row 1 -->
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <i class="fa-solid fa-shield-halved me-2 text-muted"></i> Risk Level Distribution
+                </div>
+                <div class="chart-body">
+                    <canvas id="riskChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <i class="fa-solid fa-chart-gantt me-2 text-muted"></i> Progress Distribution
+                </div>
+                <div class="chart-body">
+                    <canvas id="distributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <i class="fa-solid fa-building-columns me-2 text-muted"></i> Ministry-wise Cost Comparison
+                </div>
+                <div class="chart-body">
+                    <canvas id="ministryCostChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <i class="fa-solid fa-map me-2 text-muted"></i> State-wise Cost Analysis
+                </div>
+                <div class="chart-body">
+                    <canvas id="stateCostChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <i class="fa-solid fa-chart-pie me-2 text-muted"></i> Project Status Overview
+                </div>
+                <div class="chart-body">
+                    <canvas id="analyticsStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <i class="fa-solid fa-chart-line me-2 text-muted"></i> Cost vs Progress Correlation
+                </div>
+                <div class="chart-body">
+                    <canvas id="correlationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include Chart.js library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+
+<script>
+    // Explicitly attach data objects to window for analytics.js
+    window.riskData = {{ risk_data|default:"null"|safe }};
+    window.distributionData = {{ progress_distribution|default:"null"|safe }};
+    window.ministryCostData = {{ cost_comparison|default:"null"|safe }};
+    window.stateCostData = {{ state_cost_data|default:"null"|safe }};
+    window.statusData = {{ status_data|default:"null"|safe }};
+    window.costProgressData = {{ cost_data|default:"null"|safe }};
+</script>
+<script src="{% static 'js/analytics.js' %}"></script>
+{% endblock %}

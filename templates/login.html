@@ -1,0 +1,685 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Login / Register - IIPMP Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ===== Full Screen Login Page Layout ===== */
+    .login-wrapper {
+        min-height: calc(100vh - 140px);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 35px 16px;
+        background: radial-gradient(circle at 50% 20%, rgba(0, 51, 102, 0.06) 0%, rgba(244, 246, 249, 1) 75%);
+    }
+
+    /* Portal Header Above Card */
+    .portal-header {
+        margin-bottom: 20px;
+        animation: fadeIn 0.4s ease-out;
+    }
+    .portal-brand-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #003366;
+        letter-spacing: -0.5px;
+        margin-bottom: 4px;
+    }
+    .portal-subtitle {
+        color: #475569;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    /* Login Card Styling */
+    .login-card {
+        width: 100%;
+        max-width: 460px;
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 12px 35px rgba(0, 51, 102, 0.09), 0 2px 8px rgba(0, 0, 0, 0.04);
+        overflow: hidden;
+        animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Card Header Bar */
+    .card-header-bar {
+        background: linear-gradient(135deg, #002244 0%, #003366 100%);
+        color: #ffffff;
+        padding: 20px 24px 16px;
+        text-align: center;
+        border-bottom: 3.5px solid #FF9933;
+    }
+
+    /* Mode Navigation Tabs */
+    .mode-nav-tabs {
+        background: #F1F5F9;
+        padding: 5px;
+        border-radius: 10px;
+        display: flex;
+        gap: 5px;
+        margin-bottom: 20px;
+    }
+    .mode-nav-tabs .nav-link {
+        flex: 1;
+        text-align: center;
+        padding: 10px 14px;
+        font-weight: 700;
+        font-size: 0.88rem;
+        color: #475569;
+        border-radius: 8px;
+        border: none;
+        background: transparent;
+        transition: all 0.2s ease;
+    }
+    .mode-nav-tabs .nav-link:hover {
+        color: #003366;
+    }
+    .mode-nav-tabs .nav-link.active {
+        background: #003366;
+        color: #ffffff;
+        box-shadow: 0 2px 6px rgba(0, 51, 102, 0.2);
+    }
+
+    /* Form Fields */
+    .form-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #003366;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 5px;
+    }
+    .input-group-text {
+        background: #F8FAFC;
+        border-color: #CBD5E1;
+        color: #64748B;
+        font-size: 0.95rem;
+    }
+    .form-control {
+        border-color: #CBD5E1;
+        padding: 11px 14px;
+        font-size: 0.95rem;
+        border-radius: 8px;
+    }
+    .form-control:focus {
+        border-color: #003366;
+        box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.12);
+    }
+
+    /* Captcha Box */
+    .captcha-box {
+        background: #F8FAFC;
+        border: 1px solid #CBD5E1;
+        border-radius: 8px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .captcha-code {
+        font-family: 'Courier New', Courier, monospace;
+        font-weight: 800;
+        font-size: 1.2rem;
+        color: #003366;
+        letter-spacing: 2px;
+        background: #E2E8F0;
+        padding: 4px 12px;
+        border-radius: 6px;
+        user-select: none;
+    }
+
+    /* Primary Action Buttons */
+    .btn-submit-action {
+        background: linear-gradient(135deg, #FF9933 0%, #F59E0B 100%);
+        border: none;
+        color: #002244;
+        font-weight: 800;
+        font-size: 1rem;
+        padding: 12px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(255, 153, 51, 0.35);
+        transition: all 0.2s ease;
+        width: 100%;
+        cursor: pointer;
+    }
+    .btn-submit-action:hover {
+        background: linear-gradient(135deg, #F59E0B 0%, #E67E22 100%);
+        box-shadow: 0 6px 20px rgba(255, 153, 51, 0.5);
+        transform: translateY(-1px);
+        color: #001122;
+    }
+
+    /* Footer Credits */
+    .login-footer-credits {
+        margin-top: 24px;
+        font-size: 0.8rem;
+        color: #64748B;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+
+    <!-- Portal Header Above Card -->
+    <div class="portal-header text-center">
+        <div class="d-inline-flex align-items-center gap-2 mb-1">
+            <span class="fs-3 text-warning"><i class="fa-solid fa-building-columns"></i></span>
+            <span class="portal-brand-title">IIPMP</span>
+            <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.68rem; letter-spacing: 0.5px;">GOVERNMENT OF INDIA</span>
+        </div>
+        <h5 class="fw-bold text-navy mb-1">Integrated Infrastructure Project Monitoring Portal</h5>
+        <p class="portal-subtitle">Ministry of Statistics and Programme Implementation (MoSPI)</p>
+    </div>
+
+    <!-- Login/Register Centered Card -->
+    <div class="card login-card">
+        <!-- Card Navy Header Bar -->
+        <div class="card-header-bar">
+            <h5 class="fw-bold mb-0 text-white"><i class="fa-solid fa-user-shield me-2 text-warning"></i>Portal Access</h5>
+            <span class="small opacity-75">Sign in to your account or register as a new user</span>
+        </div>
+
+        <div class="card-body p-4">
+
+            <!-- Mode Tabs (Login / Register) -->
+            <div class="mode-nav-tabs">
+                <button type="button" class="nav-link active" id="tab-login-btn" onclick="switchMode('login')">
+                    <i class="fa-solid fa-right-to-bracket me-1"></i>Login
+                </button>
+                <button type="button" class="nav-link" id="tab-register-btn" onclick="switchMode('register')">
+                    <i class="fa-solid fa-user-plus me-1"></i>New User? Register
+                </button>
+            </div>
+
+            <!-- Inline Error Alert -->
+            <div id="authErrorAlert" class="alert alert-danger border-danger shadow-sm rounded-3 py-2 px-3 mb-3 d-none">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-circle-exclamation text-danger fs-5"></i>
+                    <span id="authErrorMessage" class="small fw-semibold">Error message details</span>
+                </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- MODE 1: LOGIN FORM                                       -->
+            <!-- ========================================================= -->
+            <form id="loginForm" onsubmit="handleLoginSubmit(event)">
+                <!-- Phone Number -->
+                <div class="mb-3">
+                    <label for="loginPhone" class="form-label">Phone Number <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
+                        <input type="tel" class="form-control font-monospace" id="loginPhone" placeholder="Enter 10-digit mobile number" maxlength="10" required autocomplete="tel">
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div class="mb-3">
+                    <label for="loginPassword" class="form-label">Password <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                        <input type="password" class="form-control" id="loginPassword" placeholder="Enter your password" required autocomplete="current-password">
+                        <button type="button" class="btn btn-outline-secondary px-3" onclick="togglePassword('loginPassword', 'loginEyeIcon')" title="Toggle password visibility">
+                            <i class="fa-solid fa-eye" id="loginEyeIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Math Captcha -->
+                <div class="mb-4">
+                    <label for="loginCaptcha" class="form-label">Security Verification (Captcha) <span class="text-danger">*</span></label>
+                    <div class="captcha-box mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted fw-bold">Solve:</span>
+                            <span class="captcha-code" id="captchaQuestion">7 + 3 = ?</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="generateCaptcha()" title="Refresh Captcha">
+                            <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                        </button>
+                    </div>
+                    <input type="number" class="form-control" id="loginCaptcha" placeholder="Enter calculated answer" required autocomplete="off">
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="loginSubmitBtn" class="btn-submit-action mb-2">
+                    <span class="spinner-border spinner-border-sm me-2 d-none" id="loginSpinner"></span>
+                    <span id="loginBtnText"><i class="fa-solid fa-right-to-bracket me-2"></i>Login</span>
+                </button>
+            </form>
+
+            <!-- ========================================================= -->
+            <!-- MODE 2: REGISTER FORM                                    -->
+            <!-- ========================================================= -->
+            <form id="registerForm" onsubmit="handleRegisterSubmit(event)" class="d-none">
+                <!-- Full Name -->
+                <div class="mb-3">
+                    <label for="regName" class="form-label">Full Name <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+                        <input type="text" class="form-control" id="regName" placeholder="e.g. Rajesh Kumar" required autocomplete="name">
+                    </div>
+                </div>
+
+                <!-- Phone Number -->
+                <div class="mb-3">
+                    <label for="regPhone" class="form-label">Phone Number <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
+                        <input type="tel" class="form-control font-monospace" id="regPhone" placeholder="10-digit mobile number" maxlength="10" required autocomplete="tel">
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div class="mb-3">
+                    <label for="regPassword" class="form-label">Create Password <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                        <input type="password" class="form-control" id="regPassword" placeholder="Create a password" required autocomplete="new-password">
+                        <button type="button" class="btn btn-outline-secondary px-3" onclick="togglePassword('regPassword', 'regEyeIcon1')">
+                            <i class="fa-solid fa-eye" id="regEyeIcon1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Confirm Password -->
+                <div class="mb-3">
+                    <label for="regConfirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                        <input type="password" class="form-control" id="regConfirmPassword" placeholder="Confirm your password" required autocomplete="new-password">
+                        <button type="button" class="btn btn-outline-secondary px-3" onclick="togglePassword('regConfirmPassword', 'regEyeIcon2')">
+                            <i class="fa-solid fa-eye" id="regEyeIcon2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Math Captcha -->
+                <div class="mb-4">
+                    <label for="regCaptcha" class="form-label">Security Verification (Captcha) <span class="text-danger">*</span></label>
+                    <div class="captcha-box mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted fw-bold">Solve:</span>
+                            <span class="captcha-code" id="captchaQuestionReg">7 + 3 = ?</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="generateCaptcha()" title="Refresh Captcha">
+                            <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                        </button>
+                    </div>
+                    <input type="number" class="form-control" id="regCaptcha" placeholder="Enter calculated answer" required autocomplete="off">
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="regSubmitBtn" class="btn-submit-action mb-2">
+                    <span class="spinner-border spinner-border-sm me-2 d-none" id="regSpinner"></span>
+                    <span id="regBtnText"><i class="fa-solid fa-user-plus me-2"></i>Register & Continue</span>
+                </button>
+            </form>
+
+        </div>
+
+        <!-- Card Footer -->
+        <div class="card-footer bg-light text-center py-2.5 border-top text-muted small">
+            <i class="fa-solid fa-shield-halved me-1 text-primary"></i> Official Portal Access for Project Officers
+        </div>
+    </div>
+
+    <!-- Login Footer Credits -->
+    <div class="login-footer-credits">
+        <p class="mb-1"><strong>IIPMP — Integrated Infrastructure Project Monitoring Portal (Preview)</strong></p>
+        <p class="mb-0 text-muted">Government of India | Smart India Hackathon 2026</p>
+    </div>
+
+</div>
+
+<!-- Modal: Set First-Time Password for Pre-registered Users -->
+<div class="modal fade" id="firstTimePasswordModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-navy text-white" style="background-color:#003366; border-bottom: 3px solid #FF9933;">
+                <h6 class="modal-title fw-bold text-white"><i class="fa-solid fa-key text-warning me-2"></i>Set Account Password</h6>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info py-2 px-3 small mb-3">
+                    <i class="fa-solid fa-circle-info me-1"></i> Welcome, <strong id="firstTimeUserName">Officer</strong>! Since this is your first time logging in, please create a password for your account.
+                </div>
+                
+                <div id="firstTimeErrorAlert" class="alert alert-danger py-2 px-3 small d-none mb-3">
+                    Password fields must match and be at least 4 characters long.
+                </div>
+
+                <form id="firstTimePassForm" onsubmit="handleFirstTimePassSubmit(event)">
+                    <input type="hidden" id="firstTimeUserPhone">
+                    <div class="mb-3">
+                        <label for="newPassInput" class="form-label">Create New Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="newPassInput" placeholder="Enter new password" required minlength="4">
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmNewPassInput" class="form-label">Confirm New Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="confirmNewPassInput" placeholder="Re-enter password" required minlength="4">
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100 fw-bold text-navy py-2 shadow-sm mt-2">
+                        <i class="fa-solid fa-check-circle me-1"></i> Save Password & Enter Dashboard
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // =========================================================
+    // 1. SEEDED BACKGROUND MOCK USER DATABASE (localStorage)
+    // =========================================================
+    const SEEDED_USERS = [
+        { name: "Aditya Das", phone: "6291253315", password: null },
+        { name: "Aditya Naskar", phone: "7604083892", password: null },
+        { name: "Arghya Naru", phone: "9088985964", password: null },
+        { name: "Jeet Kanjilal", phone: "6206711552", password: null },
+        { name: "Sheikh Mehebaj Uddin", phone: "9836974846", password: null }
+    ];
+
+    function getUsersDB() {
+        let dbStr = localStorage.getItem('iipmp_users_db');
+        if (!dbStr) {
+            localStorage.setItem('iipmp_users_db', JSON.stringify(SEEDED_USERS));
+            return SEEDED_USERS;
+        }
+        try {
+            const parsed = JSON.parse(dbStr);
+            // Ensure seeded users exist in DB
+            SEEDED_USERS.forEach(s => {
+                if (!parsed.find(u => String(u.phone).trim() === String(s.phone).trim())) {
+                    parsed.push(s);
+                }
+            });
+            localStorage.setItem('iipmp_users_db', JSON.stringify(parsed));
+            return parsed;
+        } catch(e) {
+            localStorage.setItem('iipmp_users_db', JSON.stringify(SEEDED_USERS));
+            return SEEDED_USERS;
+        }
+    }
+
+    function saveUsersDB(users) {
+        localStorage.setItem('iipmp_users_db', JSON.stringify(users));
+    }
+
+    // Initialize DB on load
+    getUsersDB();
+
+    // =========================================================
+    // 2. CAPTCHA GENERATOR (Client-Side Math Challenge)
+    // =========================================================
+    let currentCaptchaAnswer = 0;
+
+    function generateCaptcha() {
+        const num1 = Math.floor(Math.random() * 9) + 1; // 1-9
+        const num2 = Math.floor(Math.random() * 9) + 1; // 1-9
+        currentCaptchaAnswer = num1 + num2;
+
+        const q1 = document.getElementById('captchaQuestion');
+        const q2 = document.getElementById('captchaQuestionReg');
+        if (q1) q1.textContent = `${num1} + ${num2} = ?`;
+        if (q2) q2.textContent = `${num1} + ${num2} = ?`;
+
+        const in1 = document.getElementById('loginCaptcha');
+        const in2 = document.getElementById('regCaptcha');
+        if (in1) in1.value = '';
+        if (in2) in2.value = '';
+    }
+
+    // =========================================================
+    // 3. UI CONTROLS (Mode Switching, Eye Toggle)
+    // =========================================================
+    let currentMode = 'login';
+
+    function switchMode(mode) {
+        currentMode = mode;
+        const loginForm = document.getElementById('loginForm');
+        const regForm = document.getElementById('registerForm');
+        const loginBtn = document.getElementById('tab-login-btn');
+        const regBtn = document.getElementById('tab-register-btn');
+        const errorAlert = document.getElementById('authErrorAlert');
+
+        if (errorAlert) errorAlert.classList.add('d-none');
+        generateCaptcha();
+
+        if (mode === 'login') {
+            if (loginForm) loginForm.classList.remove('d-none');
+            if (regForm) regForm.classList.add('d-none');
+            if (loginBtn) loginBtn.classList.add('active');
+            if (regBtn) regBtn.classList.remove('active');
+        } else {
+            if (loginForm) loginForm.classList.add('d-none');
+            if (regForm) regForm.classList.remove('d-none');
+            if (loginBtn) loginBtn.classList.remove('active');
+            if (regBtn) regBtn.classList.add('active');
+        }
+    }
+
+    function togglePassword(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        if (!input || !icon) return;
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+
+    function showError(msg) {
+        const alertArea = document.getElementById('authErrorAlert');
+        const msgArea = document.getElementById('authErrorMessage');
+        if (msgArea) msgArea.textContent = msg;
+        if (alertArea) alertArea.classList.remove('d-none');
+    }
+
+    // =========================================================
+    // 4. LOGIN HANDLER
+    // =========================================================
+    function handleLoginSubmit(e) {
+        if (e) e.preventDefault();
+        try {
+            const phoneInput = document.getElementById('loginPhone');
+            const passInput = document.getElementById('loginPassword');
+            const captchaInput = document.getElementById('loginCaptcha');
+
+            const phone = phoneInput ? phoneInput.value.trim() : '';
+            const password = passInput ? passInput.value.trim() : '';
+            const captcha = captchaInput ? captchaInput.value.trim() : '';
+
+            // 1. Phone validation
+            if (!/^[0-9]{10}$/.test(phone)) {
+                showError('Please enter a valid 10-digit mobile number.');
+                generateCaptcha();
+                return false;
+            }
+
+            // 2. Captcha validation
+            if (parseInt(captcha, 10) !== currentCaptchaAnswer) {
+                showError('Incorrect captcha answer. Please try again.');
+                generateCaptcha();
+                return false;
+            }
+
+            // 3. User Lookup
+            const users = getUsersDB();
+            const user = users.find(u => String(u.phone).trim() === String(phone).trim());
+
+            if (!user) {
+                showError('Phone number not registered. Click "New User? Register" above to create an account.');
+                generateCaptcha();
+                return false;
+            }
+
+            // 4. If user exists but has no password set (Seeded team member first time)
+            if (user.password === null || user.password === undefined) {
+                if (password && password.length >= 4) {
+                    // Automatically save password & log in
+                    user.password = password;
+                    saveUsersDB(users);
+                    completeLogin(user);
+                    return false;
+                } else {
+                    // Open password setup modal
+                    document.getElementById('firstTimeUserName').textContent = user.name;
+                    document.getElementById('firstTimeUserPhone').value = user.phone;
+                    const modalEl = document.getElementById('firstTimePasswordModal');
+                    if (modalEl && typeof bootstrap !== 'undefined') {
+                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.show();
+                    }
+                    return false;
+                }
+            }
+
+            // 5. Verify password
+            if (String(user.password).trim() !== String(password).trim()) {
+                showError('Phone number or password incorrect.');
+                generateCaptcha();
+                return false;
+            }
+
+            // 6. Success -> Log In & Redirect
+            completeLogin(user);
+        } catch (err) {
+            console.error('[IIPMP Login Error]', err);
+            showError('An unexpected error occurred during login. Please try again.');
+            generateCaptcha();
+        }
+        return false;
+    }
+
+    // Handle First-Time Password Setting for Pre-registered Users
+    function handleFirstTimePassSubmit(e) {
+        if (e) e.preventDefault();
+        const phone = document.getElementById('firstTimeUserPhone').value.trim();
+        const newPass = document.getElementById('newPassInput').value.trim();
+        const confirmPass = document.getElementById('confirmNewPassInput').value.trim();
+        const errBox = document.getElementById('firstTimeErrorAlert');
+
+        if (newPass.length < 4 || newPass !== confirmPass) {
+            if (errBox) errBox.classList.remove('d-none');
+            return false;
+        }
+
+        if (errBox) errBox.classList.add('d-none');
+
+        // Save password in DB
+        const users = getUsersDB();
+        const userIndex = users.findIndex(u => String(u.phone).trim() === String(phone).trim());
+        if (userIndex !== -1) {
+            users[userIndex].password = newPass;
+            saveUsersDB(users);
+            completeLogin(users[userIndex]);
+        }
+        return false;
+    }
+
+    // =========================================================
+    // 5. REGISTER HANDLER
+    // =========================================================
+    function handleRegisterSubmit(e) {
+        if (e) e.preventDefault();
+        try {
+            const name = document.getElementById('regName').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+            const password = document.getElementById('regPassword').value.trim();
+            const confirmPassword = document.getElementById('regConfirmPassword').value.trim();
+            const captchaInput = document.getElementById('regCaptcha').value.trim();
+
+            // 1. Validations
+            if (!name) {
+                showError('Please enter your full name.');
+                generateCaptcha();
+                return false;
+            }
+
+            if (!/^[0-9]{10}$/.test(phone)) {
+                showError('Please enter a valid 10-digit mobile number.');
+                generateCaptcha();
+                return false;
+            }
+
+            if (password.length < 4) {
+                showError('Password must be at least 4 characters long.');
+                generateCaptcha();
+                return false;
+            }
+
+            if (password !== confirmPassword) {
+                showError('Passwords do not match. Please verify.');
+                generateCaptcha();
+                return false;
+            }
+
+            if (parseInt(captchaInput, 10) !== currentCaptchaAnswer) {
+                showError('Incorrect captcha answer. Please try again.');
+                generateCaptcha();
+                return false;
+            }
+
+            // 2. Check duplicate phone
+            const users = getUsersDB();
+            const existing = users.find(u => String(u.phone).trim() === String(phone).trim());
+            if (existing && existing.password !== null) {
+                showError('This phone number is already registered. Please switch to the Login tab.');
+                generateCaptcha();
+                return false;
+            }
+
+            if (existing && existing.password === null) {
+                // If user was in seed list without password, update their password & name
+                existing.name = name;
+                existing.password = password;
+                saveUsersDB(users);
+                completeLogin(existing);
+                return false;
+            }
+
+            // 3. Save new user & Log In
+            const newUser = { name: name, phone: phone, password: password };
+            users.push(newUser);
+            saveUsersDB(users);
+
+            completeLogin(newUser);
+        } catch (err) {
+            console.error('[IIPMP Register Error]', err);
+            showError('An unexpected error occurred during registration. Please try again.');
+            generateCaptcha();
+        }
+        return false;
+    }
+
+    // Complete Login Sequence & Redirect
+    function completeLogin(user) {
+        sessionStorage.setItem('iipmp_logged_in', 'true');
+        sessionStorage.setItem('iipmp_user_email', user.name + ' (' + user.phone + ')');
+        sessionStorage.setItem('iipmp_user_role', 'Nodal Officer');
+
+        window.location.href = '{% url "dashboard" %}';
+    }
+
+    // Initialize Captcha on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        generateCaptcha();
+    });
+</script>
+{% endblock %}

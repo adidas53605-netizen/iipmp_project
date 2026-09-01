@@ -1,0 +1,6 @@
+project_id,project_name,ministry,department,state,implementing_agency,approved_cost,revised_cost,expenditure,start_date,expected_completion,physical_progress,financial_progress,status,description
+IMP-001,Test Port Expansion,Ministry of Shipping,,Kerala,Cochin Port Trust,5000,,1200,2022-01-10,2026-05-30,25,24,ongoing,Sample desc
+IMP-002,Metro Line 4,Ministry of Urban Development,,Delhi,DMRC,12000,13500,8000,2021-03-01,2024-10-31,60,66,delayed,Sample desc
+IMP-003,Rural Broadband Project,Ministry of Electronics & IT,,Bihar,BBNL,3400,,500,2023-01-15,2025-12-31,15,14,ongoing,Sample desc
+IMP-004,National Highway Upgrade,Ministry of Road Transport,,Assam,NHIDCL,6700,,6500,2019-11-01,2023-12-31,98,97,completed,Sample desc
+IMP-005,Hydro Power Plant,Ministry of Power,,Himachal Pradesh,NHPC,8900,,0,2024-09-01,2029-12-31,0,0,not_started,Sample desc

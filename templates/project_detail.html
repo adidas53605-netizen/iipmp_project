@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ project.name }} - IIPMP{% endblock %}
+
+{% block extra_css %}
+<style>
+    .timeline { position: relative; padding: 20px 0; }
+    .timeline::before { content: ''; position: absolute; top: 0; bottom: 0; left: 15px; width: 2px; background: #e9ecef; }
+    .timeline-item { position: relative; margin-bottom: 20px; padding-left: 45px; }
+    .timeline-icon { position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #fff; border: 2px solid #e9ecef; z-index: 1; }
+    .timeline-icon.completed { border-color: #28A745; color: #28A745; }
+    .timeline-icon.in-progress { border-color: #0d6efd; color: #0d6efd; }
+    .timeline-icon.pending { border-color: #6C757D; color: #6C757D; }
+    
+    .detail-label { font-size: 0.85rem; color: #6C757D; text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
+    .detail-value { font-size: 1rem; color: #1A1A2E; font-weight: 500; margin-bottom: 15px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-3">
+        <a href="{% url 'project_list' %}" class="text-decoration-none text-muted"><i class="fa-solid fa-arrow-left me-1"></i> Back to Projects</a>
+    </div>
+
+    <!-- Project Header Card -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-4 position-relative overflow-hidden">
+            <div class="position-absolute top-0 end-0 p-3 opacity-25">
+                <i class="fa-solid fa-building fa-10x"></i>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-start position-relative z-1 mb-2">
+                <div>
+                    <span class="badge bg-secondary mb-2">ID: {{ project.project_id }}</span>
+                    <h2 class="fw-bold text-navy" style="color: #003366;">{{ project.name }}</h2>
+                </div>
+                <div class="d-flex flex-column align-items-end gap-2">
+                    {% if project.status == 'completed' %}
+                    <span class="badge bg-success fs-6 px-3 py-2">Completed</span>
+                    {% elif project.status == 'ongoing' %}
+                    <span class="badge bg-primary fs-6 px-3 py-2">Ongoing</span>
+                    {% elif project.status == 'delayed' %}
+                    <span class="badge bg-danger fs-6 px-3 py-2">Delayed</span>
+                    {% else %}
+                    <span class="badge bg-secondary fs-6 px-3 py-2">Not Started</span>
+                    {% endif %}
+                    
+                    {% if project.risk == 'low' %}
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success">Low Risk</span>
+                    {% elif project.risk == 'medium' %}
+                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">Medium Risk</span>
+                    {% elif project.risk == 'high' %}
+                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">High Risk</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if project.status == 'delayed' or cost_overrun_info.is_overrun %}
+            <div class="mt-3">
+                {% if cost_overrun_info.is_overrun %}
+                <div class="alert alert-warning py-2 mb-2 d-flex align-items-center">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i> 
+                    <strong>Cost Overrun:</strong>&nbsp; Project cost has increased by ₹{{ cost_overrun_info.overrun_amount|floatformat:1 }} Cr ({{ cost_overrun_info.overrun_percentage|floatformat:1 }}%).
+                </div>
+                {% endif %}
+                
+                {% if delay_info.is_delayed %}
+                <div class="alert alert-danger py-2 mb-0 d-flex align-items-center">
+                    <i class="fa-solid fa-clock me-2"></i> 
+                    <strong>Timeline Delayed:</strong>&nbsp; Project is delayed by approximately {{ delay_info.delay_months }} months.
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {% if user.is_authenticated %}
+            <div class="mt-4 pt-3 border-top position-relative z-1">
+                <a href="{% url 'project_edit' project.project_id|default:project.id %}" class="btn btn-outline-primary btn-sm me-2"><i class="fa-solid fa-edit me-1"></i> Edit Project</a>
+                <a href="{% url 'milestone_create' project.project_id|default:project.id %}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-plus me-1"></i> Add Milestone</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Details Grid -->
+    <div class="row g-4 mb-4">
+        <!-- Project Info -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 fw-bold text-navy border-bottom-0"><i class="fa-solid fa-circle-info me-2 text-muted"></i> Project Information</div>
+                <div class="card-body pt-0">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="detail-label">Ministry</div>
+                            <div class="detail-value">{{ project.ministry }}</div>
+                            
+                            <div class="detail-label">Department</div>
+                            <div class="detail-value">{{ project.department|default:"N/A" }}</div>
+                            
+                            <div class="detail-label">State</div>
+                            <div class="detail-value">{{ project.state }}</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="detail-label">Implementing Agency</div>
+                            <div class="detail-value">{{ project.agency|default:"N/A" }}</div>
+                            
+                            <div class="detail-label">Start Date</div>
+                            <div class="detail-value">{{ project.start_date|date:"d M Y"|default:"N/A" }}</div>
+                            
+                            <div class="detail-label">Expected Completion</div>
+                            <div class="detail-value">{{ project.expected_completion|date:"d M Y"|default:"N/A" }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-2 pt-3 border-top">
+                        <div class="detail-label">Description</div>
+                        <p class="text-muted small mb-0">{{ project.description|default:"No description provided for this project." }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Overview & Progress -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3 fw-bold text-navy border-bottom-0"><i class="fa-solid fa-coins me-2 text-muted"></i> Financial Overview</div>
+                <div class="card-body pt-0">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Approved Cost</span>
+                        <span class="fw-bold">₹{{ project.approved_cost|floatformat:2 }} Cr</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Revised Cost</span>
+                        <span>
+                            <span class="fw-bold">₹{{ project.revised_cost|default:project.approved_cost|floatformat:2 }} Cr</span>
+                            {% if cost_overrun_info.is_overrun %}
+                            <i class="fa-solid fa-arrow-up text-danger ms-1" title="Overrun"></i>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 pb-3 border-bottom">
+                        <span class="text-muted">Expenditure</span>
+                        <span class="fw-bold text-primary">₹{{ project.expenditure|floatformat:2 }} Cr</span>
+                    </div>
+                    
+                    <div class="mt-2">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-medium">Financial Progress</span>
+                            <span>{{ project.financial_progress|default:0|floatformat:1 }}%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ project.financial_progress|default:0 }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="fw-bold text-navy">Overall Physical Progress</span>
+                        <span class="fw-bold">{{ project.physical_progress|default:0|floatformat:1 }}%</span>
+                    </div>
+                    <div class="progress" style="height: 12px;">
+                        <div class="progress-bar {% if project.physical_progress >= 75 %}bg-success{% elif project.physical_progress >= 40 %}bg-primary{% else %}bg-warning{% endif %}" role="progressbar" style="width: {{ project.physical_progress|default:0 }}%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lower Section: Milestones & Alerts -->
+    <div class="row g-4">
+        <!-- Milestones -->
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 fw-bold text-navy border-bottom-0 d-flex justify-content-between align-items-center">
+                    <span><i class="fa-solid fa-tasks me-2 text-muted"></i> Project Milestones</span>
+                </div>
+                <div class="card-body">
+                    {% if milestones %}
+                    <div class="timeline">
+                        {% for milestone in milestones %}
+                        <div class="timeline-item">
+                            {% if milestone.status == 'completed' %}
+                            <div class="timeline-icon completed"><i class="fa-solid fa-check"></i></div>
+                            {% elif milestone.status == 'in_progress' %}
+                            <div class="timeline-icon in-progress"><i class="fa-solid fa-circle-dot"></i></div>
+                            {% else %}
+                            <div class="timeline-icon pending"><i class="fa-regular fa-circle"></i></div>
+                            {% endif %}
+                            
+                            <div class="card bg-light border-0">
+                                <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1 fw-bold">{{ milestone.name }}</h6>
+                                        <div class="small text-muted">
+                                            <i class="fa-regular fa-calendar me-1"></i> Target: {{ milestone.target_date|date:"d M Y" }}
+                                            {% if milestone.completion_date %}
+                                            <span class="ms-2 text-success"><i class="fa-solid fa-check-circle me-1"></i> Done: {{ milestone.completion_date|date:"d M Y" }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        {% if milestone.status == 'completed' %}
+                                        <span class="badge bg-success">Completed</span>
+                                        {% elif milestone.status == 'in_progress' %}
+                                        <span class="badge bg-primary">In Progress</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Pending</span>
+                                        {% endif %}
+                                        
+                                        {% if user.is_authenticated %}
+                                        <a href="{% url 'milestone_edit' project.project_id|default:project.id milestone.id %}" class="btn btn-sm btn-link text-muted p-0 ms-2"><i class="fa-solid fa-pencil"></i></a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted">No milestones added yet.</p>
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'milestone_create' project.project_id|default:project.id %}" class="btn btn-sm btn-outline-primary">Add First Milestone</a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Alerts -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 fw-bold text-navy border-bottom-0"><i class="fa-solid fa-bell me-2 text-muted"></i> Recent Alerts</div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for alert in alerts|slice:":5" %}
+                        <li class="list-group-item p-3 border-0 border-bottom">
+                            <div class="d-flex">
+                                <div class="me-3 mt-1">
+                                    {% if alert.severity == 'danger' %}
+                                    <i class="fa-solid fa-triangle-exclamation text-danger fs-5"></i>
+                                    {% elif alert.severity == 'warning' %}
+                                    <i class="fa-solid fa-circle-exclamation text-warning fs-5"></i>
+                                    {% elif alert.severity == 'success' %}
+                                    <i class="fa-solid fa-circle-check text-success fs-5"></i>
+                                    {% else %}
+                                    <i class="fa-solid fa-circle-info text-info fs-5"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <p class="mb-1 small">{{ alert.message }}</p>
+                                    <div class="text-muted" style="font-size: 0.75rem;">{{ alert.created_at|timesince }} ago</div>
+                                </div>
+                            </div>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item py-4 text-center text-muted border-0">
+                            <i class="fa-regular fa-bell-slash fs-4 mb-2 d-block text-light"></i>
+                            No recent alerts for this project.
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

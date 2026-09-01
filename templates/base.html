@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}IIPMP{% endblock %}</title>
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F5F5F5; color: #1A1A2E; }
+        .gov-stripe { height: 12px; display: flex; }
+        .gov-stripe .saffron { flex: 1; background-color: #FF9933; }
+        .gov-stripe .white { flex: 1; background-color: #FFFFFF; }
+        .gov-stripe .green { flex: 1; background-color: #138808; }
+        .navbar-brand { font-weight: 700; color: #003366 !important; }
+        .navy-bg { background-color: #003366; }
+        .footer { background-color: #003366; color: #FFFFFF; padding: 40px 0 20px; }
+        .footer a { color: #FFFFFF; text-decoration: none; }
+        .footer a:hover { color: #FF9933; }
+    </style>
+    <!-- Client Session Gate Script -->
+    <script>
+        (function() {
+            var path = window.location.pathname;
+            var isLoggedIn = sessionStorage.getItem('iipmp_logged_in') === 'true';
+
+            if (path === '/login/' || path === '/login') {
+                if (isLoggedIn) {
+                    window.location.href = '{% url "dashboard" %}';
+                }
+            } else {
+                if (!isLoggedIn) {
+                    window.location.href = '{% url "login" %}';
+                }
+            }
+        })();
+
+        function iipmpLogout(e) {
+            if (e) e.preventDefault();
+            sessionStorage.removeItem('iipmp_logged_in');
+            sessionStorage.removeItem('iipmp_user_email');
+            sessionStorage.removeItem('iipmp_user_role');
+            window.location.href = '{% url "login" %}';
+        }
+    </script>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Government header stripe -->
+    <div class="gov-stripe">
+        <div class="saffron"></div>
+        <div class="white"></div>
+        <div class="green"></div>
+    </div>
+
+    <!-- Main Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top" id="siteNavbar">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'dashboard' %}">
+                <div>
+                    <small class="d-block text-muted" style="font-size: 0.6rem; font-weight: normal;">Government of India</small>
+                    IIPMP <span class="badge bg-primary ms-1" style="font-size: 0.6rem;">BETA</span>
+                </div>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link {% block nav_dashboard %}{% endblock %}" href="{% url 'dashboard' %}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% block nav_projects %}{% endblock %}" href="{% url 'project_list' %}">Projects</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% block nav_analytics %}{% endblock %}" href="{% url 'analytics' %}">Analytics</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% block nav_budget %}{% endblock %}" href="{% url 'budget' %}">Budget</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% block nav_review %}{% endblock %}" href="{% url 'review' %}">Review</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% block nav_alerts %}{% endblock %}" href="{% url 'alerts' %}">Alerts</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% block nav_help %}{% endblock %}" href="{% url 'help' %}">Help</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center" id="navAuthSection">
+                    <form class="d-flex me-3 search-container position-relative" action="{% url 'project_list' %}" method="GET" id="globalSearchForm" style="min-width: 260px;">
+                        <div class="input-group input-group-sm">
+                            <input class="form-control" type="search" placeholder="Search projects, IDs..." aria-label="Search" id="globalSearch" name="search" autocomplete="off" value="{{ request.GET.search|default:'' }}">
+                            <button class="btn btn-primary" type="submit" title="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+                        </div>
+                    </form>
+                    <a href="{% url 'alerts' %}" class="btn btn-light position-relative me-3" title="Alerts Feed">
+                        <i class="fa-regular fa-bell"></i>
+                        {% block alert_count %}
+                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                            <span class="visually-hidden">New alerts</span>
+                        </span>
+                        {% endblock %}
+                    </a>
+                    
+                    <!-- Dynamic User & Logout Controls -->
+                    <div class="dropdown me-2" id="navUserDropdownArea">
+                        <button class="btn btn-outline-primary dropdown-toggle btn-sm fw-bold" type="button" id="userMenuDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-solid fa-user-circle me-1"></i> <span id="navUserEmailDisplay">Admin</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userMenuDropdown">
+                            <li><span class="dropdown-item-text text-muted small" id="navUserRoleDisplay">Role: Ministry Official</span></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger fw-bold" href="#" onclick="iipmpLogout(event)"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a></li>
+                        </ul>
+                    </div>
+                    <button onclick="iipmpLogout(event)" class="btn btn-outline-danger btn-sm fw-bold" id="navLogoutBtn" title="Sign out of portal">
+                        <i class="fa-solid fa-right-from-bracket me-1"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Content Block -->
+    <main class="min-vh-100">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto" id="siteFooter">
+        <div class="container">
+            <div class="row mb-4">
+                <div class="col-md-4 mb-3">
+                    <h5 class="text-white mb-3">About IIPMP</h5>
+                    <p class="text-light opacity-75 small">The Integrated Infrastructure Project Monitoring Platform is a unified system designed for real-time tracking, evaluation, and management of major infrastructure initiatives across India, ensuring transparency and efficiency.</p>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <h5 class="text-white mb-3">Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'dashboard' %}"><i class="fa-solid fa-angle-right me-2"></i>Dashboard</a></li>
+                        <li><a href="{% url 'project_list' %}"><i class="fa-solid fa-angle-right me-2"></i>Projects</a></li>
+                        <li><a href="{% url 'alerts' %}"><i class="fa-solid fa-angle-right me-2"></i>Alerts</a></li>
+                        <li><a href="{% url 'help' %}"><i class="fa-solid fa-angle-right me-2"></i>Help</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <h5 class="text-white mb-3">Contact & Info</h5>
+                    <ul class="list-unstyled text-light opacity-75 small">
+                        <li class="mb-2"><i class="fa-solid fa-envelope me-2"></i> support@iipmp.gov.in</li>
+                        <li class="mb-2"><i class="fa-solid fa-phone me-2"></i> 1800-11-2233</li>
+                        <li><i class="fa-solid fa-building me-2"></i> West Bengal, India</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="border-light opacity-25">
+            <div class="row align-items-center pt-3 pb-2">
+                <div class="col-md-6 text-center text-md-start small text-light opacity-75">
+                    Government of India | IIPMP | Smart India Hackathon 2026<br>
+                    &copy; 2026 Student Developer Team
+                </div>
+                <div class="col-md-6 text-center text-md-end mt-3 mt-md-0 small">
+                    <a href="{% url 'help' %}" class="me-3">Privacy Policy</a>
+                    <a href="{% url 'help' %}" class="me-3">Terms of Use</a>
+                    <a href="{% url 'help' %}" class="me-3">Contact</a>
+                    <a href="{% url 'help' %}">Help</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5.3 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js 4 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+    <!-- Main JS -->
+    <script src="{% static 'js/main.js' %}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var email = sessionStorage.getItem('iipmp_user_email') || 'Admin';
+            var role = sessionStorage.getItem('iipmp_user_role') || 'Ministry Official';
+            
+            var emailDisplay = document.getElementById('navUserEmailDisplay');
+            var roleDisplay = document.getElementById('navUserRoleDisplay');
+            
+            if (emailDisplay) emailDisplay.textContent = email.split('@')[0];
+            if (roleDisplay) roleDisplay.textContent = 'Role: ' + role;
+
+            var path = window.location.pathname;
+            if (path === '/login/' || path === '/login') {
+                var navAuthSection = document.getElementById('navAuthSection');
+                if (navAuthSection) navAuthSection.style.display = 'none';
+                var mainNav = document.getElementById('mainNav');
+                if (mainNav) mainNav.style.display = 'none';
+                var siteFooter = document.getElementById('siteFooter');
+                if (siteFooter) siteFooter.style.display = 'none';
+            }
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

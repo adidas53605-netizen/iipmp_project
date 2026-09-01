@@ -1,0 +1,409 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Alerts - IIPMP{% endblock %}
+{% block nav_alerts %}active{% endblock %}
+
+{% block alert_count %}
+{% if alerts|length > 0 %}
+<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+    {{ alerts|length }}
+    <span class="visually-hidden">unread alerts</span>
+</span>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Loading spinner */
+    .alerts-loading {
+        text-align: center;
+        padding: 60px 20px;
+    }
+    .alerts-loading .spinner-border {
+        width: 2.5rem;
+        height: 2.5rem;
+        color: #003366;
+    }
+    .alerts-loading p {
+        margin-top: 16px;
+        color: #6C757D;
+        font-weight: 500;
+    }
+
+    /* Error state */
+    .alerts-error {
+        text-align: center;
+        padding: 40px 20px;
+    }
+    .alerts-error i {
+        font-size: 3rem;
+        color: #DC3545;
+        margin-bottom: 16px;
+    }
+    .alerts-error h5 {
+        color: #1A1A2E;
+        margin-bottom: 8px;
+    }
+    .alerts-error p {
+        color: #6C757D;
+        margin-bottom: 16px;
+    }
+
+    /* Alert items — match existing design exactly */
+    .alert-item {
+        transition: background-color 0.15s ease;
+    }
+    .alert-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    /* Data source badge */
+    .data-source-badge {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h2 class="mb-1" style="color: #003366; font-weight: 700;">System Alerts</h2>
+            <p class="text-muted mb-0">Automated notifications and risk warnings</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-danger fs-6" id="alertCountBadge">
+                <i class="fa-solid fa-spinner fa-spin me-1" id="badgeSpinner"></i>
+                <span id="alertCountText">Loading...</span>
+            </span>
+            <span class="data-source-badge bg-light border text-muted" id="dataSourceBadge" style="display:none;">
+                <i class="fa-solid fa-database me-1"></i><span id="dataSourceText"></span>
+            </span>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card shadow-sm border-0 mb-4 bg-light">
+        <div class="card-body p-3">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <label class="fw-bold small text-muted text-nowrap">Filter Alerts:</label>
+                <select id="alertTypeFilter" class="form-select form-select-sm" style="max-width: 250px;">
+                    <option value="">All Alert Types</option>
+                    <option value="delay">Timeline Delays</option>
+                    <option value="cost_overrun">Cost Overruns</option>
+                    <option value="progress_gap">Milestone Updates</option>
+                    <option value="high_risk">System Notifications</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="filterBtn">
+                    <i class="fa-solid fa-filter me-1"></i>Filter
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshBtn">
+                    <i class="fa-solid fa-arrows-rotate me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Feed -->
+    <div class="card shadow-sm border-0">
+        <div class="list-group list-group-flush rounded" id="alertFeed">
+            <!-- Alerts rendered by JavaScript -->
+        </div>
+
+        <!-- Load More Footer -->
+        <div class="card-footer bg-white text-center py-3" id="loadMoreFooter" style="display: none;">
+            <button class="btn btn-sm btn-link text-muted text-decoration-none" id="loadMoreBtn">
+                <i class="fa-solid fa-chevron-down me-1"></i>Load More Alerts...
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    'use strict';
+
+    // =========================================================
+    //  CONFIG
+    // =========================================================
+    const API_URL = '/api/alerts/';           // Our own backend JSON API
+    const ALERTS_PER_PAGE = 10;               // Number of alerts per "page"
+    const PROJECT_DETAIL_URL = '/projects/';  // Matches urlpatterns: /projects/<project_id>/
+
+    // =========================================================
+    //  STATE
+    // =========================================================
+    let allAlerts = [];        // Full list from API
+    let filteredAlerts = [];   // After applying filter
+    let visibleCount = 0;      // Currently visible alerts
+    let dataSource = '';       // 'api' or 'fallback'
+
+    // =========================================================
+    //  FALLBACK SAMPLE DATA
+    //  Used only when the API is unreachable
+    // =========================================================
+    const FALLBACK_ALERTS = [
+        { id: 1, alert_type: 'high_risk', severity: 'danger', message: 'Project is at High Risk', time_ago: 'Just now', project: { id: 1, project_id: 'PROJ-001', name: 'Delhi-Mumbai Expressway' }},
+        { id: 2, alert_type: 'delay', severity: 'danger', message: 'Delayed by 15 months', time_ago: '2 hours ago', project: { id: 2, project_id: 'PROJ-002', name: 'Mumbai Metro Line 3' }},
+        { id: 3, alert_type: 'progress_gap', severity: 'warning', message: 'Physical progress is 42% but expected is 78%', time_ago: '5 hours ago', project: { id: 3, project_id: 'PROJ-003', name: 'Bengaluru Suburban Rail' }},
+        { id: 4, alert_type: 'cost_overrun', severity: 'danger', message: 'Cost overrun of 25% detected', time_ago: '1 day ago', project: { id: 4, project_id: 'PROJ-004', name: 'Navi Mumbai International Airport' }},
+        { id: 5, alert_type: 'high_risk', severity: 'danger', message: 'Project is at High Risk', time_ago: '1 day ago', project: { id: 5, project_id: 'PROJ-005', name: 'Chennai Port Expansion' }},
+        { id: 6, alert_type: 'delay', severity: 'danger', message: 'Delayed by 8 months', time_ago: '2 days ago', project: { id: 6, project_id: 'PROJ-006', name: 'Eastern Dedicated Freight Corridor' }},
+        { id: 7, alert_type: 'progress_gap', severity: 'warning', message: 'Physical progress is 30% but expected is 65%', time_ago: '2 days ago', project: { id: 7, project_id: 'PROJ-007', name: 'Smart City Mission - Varanasi' }},
+        { id: 8, alert_type: 'cost_overrun', severity: 'warning', message: 'Cost overrun of 12% detected', time_ago: '3 days ago', project: { id: 8, project_id: 'PROJ-008', name: 'Char Dham Highway Project' }},
+        { id: 9, alert_type: 'high_risk', severity: 'danger', message: 'Project is at High Risk', time_ago: '3 days ago', project: { id: 9, project_id: 'PROJ-009', name: 'Sagarmala Port Modernization' }},
+        { id: 10, alert_type: 'delay', severity: 'danger', message: 'Delayed by 20 months', time_ago: '4 days ago', project: { id: 10, project_id: 'PROJ-010', name: 'Amaravati Capital City' }},
+        { id: 11, alert_type: 'progress_gap', severity: 'warning', message: 'Physical progress is 55% but expected is 90%', time_ago: '5 days ago', project: { id: 11, project_id: 'PROJ-011', name: 'National Solar Mission Phase III' }},
+        { id: 12, alert_type: 'high_risk', severity: 'danger', message: 'Project is at High Risk', time_ago: '6 days ago', project: { id: 12, project_id: 'PROJ-012', name: 'Digital India Data Centre' }},
+    ];
+
+    // =========================================================
+    //  DOM REFERENCES
+    // =========================================================
+    const feed = document.getElementById('alertFeed');
+    const loadMoreFooter = document.getElementById('loadMoreFooter');
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    const filterSelect = document.getElementById('alertTypeFilter');
+    const filterBtn = document.getElementById('filterBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const alertCountText = document.getElementById('alertCountText');
+    const badgeSpinner = document.getElementById('badgeSpinner');
+    const dataSourceBadge = document.getElementById('dataSourceBadge');
+    const dataSourceText = document.getElementById('dataSourceText');
+
+    // =========================================================
+    //  RENDER FUNCTIONS
+    // =========================================================
+
+    /** Show loading spinner inside the feed */
+    function showLoading() {
+        feed.innerHTML = `
+            <div class="alerts-loading">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p>Loading alerts from server...</p>
+            </div>`;
+        loadMoreFooter.style.display = 'none';
+        badgeSpinner.style.display = 'inline-block';
+        alertCountText.textContent = 'Loading...';
+    }
+
+    /** Show error message with retry option */
+    function showError(msg) {
+        feed.innerHTML = `
+            <div class="alerts-error">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <h5>Unable to load alerts</h5>
+                <p>${msg}</p>
+                <button class="btn btn-sm btn-outline-primary" onclick="window.__retryAlerts()">
+                    <i class="fa-solid fa-arrows-rotate me-1"></i>Retry
+                </button>
+            </div>`;
+        loadMoreFooter.style.display = 'none';
+    }
+
+    /** Show empty state */
+    function showEmpty() {
+        feed.innerHTML = `
+            <div class="list-group-item p-5 text-center">
+                <div class="text-muted mb-3"><i class="fa-regular fa-bell-slash fa-4x"></i></div>
+                <h5 class="text-muted">No alerts at this time</h5>
+                <p class="text-muted mb-0">All projects are running smoothly within defined parameters!</p>
+            </div>`;
+        loadMoreFooter.style.display = 'none';
+    }
+
+    /** Map severity → Bootstrap theme info */
+    function getSeverityInfo(severity) {
+        switch (severity) {
+            case 'danger':  return { bg: 'danger',  icon: 'fa-triangle-exclamation' };
+            case 'warning': return { bg: 'warning', icon: 'fa-circle-exclamation' };
+            case 'success': return { bg: 'success', icon: 'fa-check' };
+            default:        return { bg: 'info',    icon: 'fa-info' };
+        }
+    }
+
+    /** Render a single alert item — matches the existing Django template output exactly */
+    function renderAlertItem(alert) {
+        const sev = getSeverityInfo(alert.severity);
+        const projectLink = alert.project
+            ? PROJECT_DETAIL_URL + alert.project.project_id + '/'
+            : '#';
+
+        const alertTypeLabel = (alert.alert_type || 'alert')
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase());
+
+        const projectSection = alert.project ? `
+            <p class="text-muted small mb-2">
+                Project: <a href="${projectLink}" class="text-decoration-none fw-bold">${escapeHtml(alert.project.name)}</a>
+            </p>
+            <a href="${projectLink}" class="btn btn-sm btn-outline-secondary mt-2">Review Project</a>
+        ` : '';
+
+        return `
+        <div class="list-group-item list-group-item-action p-4 border-bottom alert-item" data-alert-type="${alert.alert_type}">
+            <div class="d-flex gap-3">
+                <!-- Icon -->
+                <div class="flex-shrink-0 mt-1">
+                    <div class="bg-${sev.bg} bg-opacity-10 text-${sev.bg} rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="fa-solid ${sev.icon} fs-4"></i>
+                    </div>
+                </div>
+                <!-- Content -->
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div>
+                            <span class="badge bg-${sev.bg} bg-opacity-10 text-${sev.bg} border border-${sev.bg} mb-2">
+                                ${alertTypeLabel} Alert
+                            </span>
+                            <h6 class="mb-1 fw-bold">${escapeHtml(alert.message)}</h6>
+                        </div>
+                        <small class="text-muted text-nowrap"><i class="fa-regular fa-clock me-1"></i>${escapeHtml(alert.time_ago || '')}</small>
+                    </div>
+                    ${projectSection}
+                </div>
+            </div>
+        </div>`;
+    }
+
+    /** Render visible alerts into the feed */
+    function renderAlerts() {
+        if (filteredAlerts.length === 0) {
+            showEmpty();
+            updateBadge(0);
+            return;
+        }
+
+        const toShow = filteredAlerts.slice(0, visibleCount);
+        feed.innerHTML = toShow.map(renderAlertItem).join('');
+
+        // Show/hide Load More
+        if (visibleCount < filteredAlerts.length) {
+            loadMoreFooter.style.display = 'block';
+            loadMoreBtn.textContent = '';
+            loadMoreBtn.innerHTML = '<i class="fa-solid fa-chevron-down me-1"></i>Load More Alerts... (' + (filteredAlerts.length - visibleCount) + ' remaining)';
+        } else {
+            loadMoreFooter.style.display = 'none';
+        }
+
+        updateBadge(filteredAlerts.length);
+    }
+
+    /** Update badge count */
+    function updateBadge(count) {
+        badgeSpinner.style.display = 'none';
+        alertCountText.textContent = count + ' Total Alerts';
+    }
+
+    /** Show data source indicator */
+    function showDataSource(source) {
+        dataSource = source;
+        dataSourceBadge.style.display = 'inline-block';
+        if (source === 'api') {
+            dataSourceText.textContent = 'Live Data';
+            dataSourceBadge.className = 'data-source-badge badge bg-success bg-opacity-10 text-success border border-success';
+        } else {
+            dataSourceText.textContent = 'Sample Data';
+            dataSourceBadge.className = 'data-source-badge badge bg-warning bg-opacity-10 text-warning border border-warning';
+        }
+    }
+
+    /** Escape HTML to prevent XSS */
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // =========================================================
+    //  DATA FETCHING
+    // =========================================================
+
+    /** Fetch alerts from our own backend API */
+    async function fetchAlerts() {
+        showLoading();
+
+        try {
+            const response = await fetch(API_URL, {
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!response.ok) {
+                throw new Error('Server returned ' + response.status);
+            }
+
+            const data = await response.json();
+
+            if (!Array.isArray(data)) {
+                throw new Error('Invalid response format');
+            }
+
+            allAlerts = data;
+            showDataSource('api');
+            applyFilter();
+
+        } catch (error) {
+            console.warn('[IIPMP Alerts] API fetch failed, using fallback data:', error.message);
+            allAlerts = FALLBACK_ALERTS;
+            showDataSource('fallback');
+            applyFilter();
+        }
+    }
+
+    // =========================================================
+    //  FILTER & LOAD MORE
+    // =========================================================
+
+    /** Apply the current filter */
+    function applyFilter() {
+        const selectedType = filterSelect.value;
+        if (selectedType) {
+            filteredAlerts = allAlerts.filter(a => a.alert_type === selectedType);
+        } else {
+            filteredAlerts = [...allAlerts];
+        }
+        visibleCount = ALERTS_PER_PAGE;
+        renderAlerts();
+    }
+
+    /** Load more alerts */
+    function loadMore() {
+        visibleCount += ALERTS_PER_PAGE;
+        renderAlerts();
+    }
+
+    // =========================================================
+    //  GLOBAL RETRY (called from error state button)
+    // =========================================================
+    window.__retryAlerts = fetchAlerts;
+
+    // =========================================================
+    //  EVENT LISTENERS
+    // =========================================================
+    filterBtn.addEventListener('click', applyFilter);
+    refreshBtn.addEventListener('click', fetchAlerts);
+    loadMoreBtn.addEventListener('click', loadMore);
+
+    // Allow pressing Enter in the filter dropdown
+    filterSelect.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') applyFilter();
+    });
+
+    // =========================================================
+    //  INIT — Fetch data on page load
+    // =========================================================
+    fetchAlerts();
+
+})();
+</script>
+{% endblock %}

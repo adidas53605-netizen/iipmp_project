@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}State-wise Infrastructure Analysis - IIPMP{% endblock %}
+{% block nav_states %}active{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1" style="color: #003366; font-weight: 700;">
+                <i class="fa-solid fa-map-location-dot me-2 text-primary"></i>State-wise Infrastructure Analysis
+            </h2>
+            <p class="text-muted mb-0">Project distribution, financial expenditure, and status breakdown across all states</p>
+        </div>
+        <div>
+            <a href="{% url 'project_list' %}" class="btn btn-outline-primary shadow-sm fw-bold">
+                <i class="fa-solid fa-list-check me-1"></i> View All Projects
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-primary">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">States Monitored</div>
+                        <div class="h3 mb-0 fw-bold" style="color: #003366;">{{ total_states }}</div>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-3 text-primary">
+                        <i class="fa-solid fa-map fa-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-info">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Total Projects</div>
+                        <div class="h3 mb-0 fw-bold" style="color: #003366;">{{ total_projects }}</div>
+                    </div>
+                    <div class="bg-info bg-opacity-10 p-3 rounded-3 text-info">
+                        <i class="fa-solid fa-diagram-project fa-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-warning">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Total Approved Cost</div>
+                        <div class="h3 mb-0 fw-bold text-dark">₹{{ total_approved|floatformat:1 }} Cr</div>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded-3 text-warning">
+                        <i class="fa-solid fa-indian-rupee-sign fa-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-success">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Total Expenditure</div>
+                        <div class="h3 mb-0 fw-bold text-success">₹{{ total_expenditure|floatformat:1 }} Cr</div>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded-3 text-success">
+                        <i class="fa-solid fa-chart-line fa-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- State Comparison Chart Card -->
+    <div class="card border-0 shadow-sm mb-4 rounded-3">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold" style="color: #003366;">
+                <i class="fa-solid fa-chart-column me-2 text-muted"></i>State-wise Project Count & Financial Allocations
+            </h5>
+            <span class="badge bg-light text-secondary border">Real-time DB Data</span>
+        </div>
+        <div class="card-body p-4" style="height: 340px;">
+            <canvas id="statesChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Detailed States Grid -->
+    <h5 class="fw-bold mb-3" style="color: #003366;">State Infrastructure Breakdown</h5>
+    <div class="row g-3">
+        {% for st in states_data %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card border-0 shadow-sm h-100 rounded-3 hover-shadow transition">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="fw-bold mb-0" style="color: #003366;">
+                                <a href="{% url 'project_list' %}?state={{ st.name|urlencode }}" class="text-decoration-none" style="color: #003366;">
+                                    {{ st.name }}
+                                </a>
+                            </h5>
+                            <span class="badge bg-primary rounded-pill px-3 py-2 fs-6">{{ st.count }} Projects</span>
+                        </div>
+                        <hr class="my-2 opacity-10">
+
+                        <div class="row my-3 g-2">
+                            <div class="col-6">
+                                <div class="p-2 bg-light rounded text-center">
+                                    <span class="d-block text-muted small fw-bold">APPROVED COST</span>
+                                    <span class="fw-bold text-dark fs-6">₹{{ st.approved_cost|floatformat:1 }} Cr</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2 bg-light rounded text-center">
+                                    <span class="d-block text-muted small fw-bold">EXPENDITURE</span>
+                                    <span class="fw-bold text-success fs-6">₹{{ st.expenditure|floatformat:1 }} Cr</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <span class="d-block text-muted small fw-bold mb-2">PROJECT STATUS BREAKDOWN</span>
+                            <div class="d-flex flex-wrap gap-1">
+                                {% if st.completed > 0 %}
+                                <span class="badge bg-success px-2 py-1"><i class="fa-solid fa-check me-1"></i>Completed: {{ st.completed }}</span>
+                                {% endif %}
+                                {% if st.ongoing > 0 %}
+                                <span class="badge bg-primary px-2 py-1"><i class="fa-solid fa-spinner me-1"></i>Ongoing: {{ st.ongoing }}</span>
+                                {% endif %}
+                                {% if st.delayed > 0 %}
+                                <span class="badge bg-danger px-2 py-1"><i class="fa-solid fa-triangle-exclamation me-1"></i>Delayed: {{ st.delayed }}</span>
+                                {% endif %}
+                                {% if st.not_started > 0 %}
+                                <span class="badge bg-secondary px-2 py-1">Not Started: {{ st.not_started }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-top d-flex justify-content-between align-items-center">
+                        {% if st.high_risk > 0 %}
+                        <span class="small text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>{{ st.high_risk }} High Risk</span>
+                        {% else %}
+                        <span class="small text-success fw-bold"><i class="fa-solid fa-shield-check me-1"></i>Stable Risk</span>
+                        {% endif %}
+                        <a href="{% url 'project_list' %}?state={{ st.name|urlencode }}" class="btn btn-sm btn-outline-primary fw-bold">
+                            View Projects <i class="fa-solid fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('statesChart');
+    if (!ctx) return;
+
+    const labels = {{ chart_labels|safe }};
+    const counts = {{ chart_counts|safe }};
+    const costs = {{ chart_costs|safe }};
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Approved Allocation (₹ Cr)',
+                    data: costs,
+                    backgroundColor: 'rgba(0, 51, 102, 0.85)',
+                    borderRadius: 4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Number of Projects',
+                    data: counts,
+                    backgroundColor: 'rgba(255, 153, 51, 0.9)',
+                    borderRadius: 4,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { grid: { display: false } },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: { display: true, text: 'Allocation (₹ Cr)' },
+                    ticks: { callback: v => '₹' + v }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: { display: true, text: 'Project Count' },
+                    grid: { drawOnChartArea: false },
+                    ticks: { precision: 0 }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

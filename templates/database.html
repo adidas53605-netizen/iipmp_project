@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Database Management - IIPMP{% endblock %}
+{% block nav_database %}active{% endblock %}
+
+{% block content %}
+{% if user.is_authenticated %}
+<div class="container-fluid py-4 px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1" style="color: #003366; font-weight: 700;">Database Management</h2>
+            <p class="text-muted mb-0">Manage projects, import data, and maintain records</p>
+        </div>
+        <div>
+            <a href="{% url 'project_create' %}" class="btn btn-primary" style="background-color: #003366;"><i class="fa-solid fa-plus me-1"></i> Add New Project</a>
+        </div>
+    </div>
+
+    <!-- CSV Import Section -->
+    <div class="accordion mb-4 shadow-sm" id="importAccordion">
+        <div class="accordion-item border-0">
+            <h2 class="accordion-header" id="headingOne">
+                <button class="accordion-button collapsed bg-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                    <i class="fa-solid fa-file-csv me-2 text-success"></i> Bulk Import via CSV
+                </button>
+            </h2>
+            <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#importAccordion">
+                <div class="accordion-body bg-light">
+                    <div class="row align-items-center">
+                        <div class="col-md-7">
+                            <h6 class="fw-bold mb-2">Upload Data File</h6>
+                            <p class="small text-muted mb-3">Upload a CSV file containing project data. The system will automatically detect new projects and update existing ones based on the Project ID.</p>
+                            <form method="POST" action="{% url 'csv_import' %}" enctype="multipart/form-data" class="d-flex align-items-center gap-3">
+                                {% csrf_token %}
+                                <input class="form-control" type="file" name="csv_file" accept=".csv" required>
+                                <button type="submit" class="btn btn-success text-nowrap"><i class="fa-solid fa-upload me-1"></i> Import CSV</button>
+                            </form>
+                        </div>
+                        <div class="col-md-5 border-start">
+                            <div class="p-2">
+                                <h6 class="small fw-bold"><i class="fa-solid fa-info-circle text-info me-1"></i> Expected CSV Format:</h6>
+                                <ul class="small text-muted mb-0 ps-3">
+                                    <li>Required columns: <code>project_id</code>, <code>name</code>, <code>ministry</code></li>
+                                    <li>Numeric columns: <code>approved_cost</code>, <code>expenditure</code></li>
+                                    <li>Date format: <code>YYYY-MM-DD</code></li>
+                                    <li><a href="#" class="text-decoration-none"><i class="fa-solid fa-download me-1"></i>Download Template</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Data Table -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+            <h5 class="mb-0 fw-bold text-navy"><i class="fa-solid fa-database me-2 text-muted"></i> Project Database</h5>
+            <div class="input-group" style="width: 250px;">
+                <input type="text" class="form-control form-control-sm" placeholder="Filter table...">
+                <button class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-search"></i></button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-striped align-middle mb-0">
+                <thead style="background-color: #f8f9fa;">
+                    <tr>
+                        <th scope="col" class="py-3 px-3 border-0 text-muted">Project ID</th>
+                        <th scope="col" class="py-3 border-0 text-muted">Name</th>
+                        <th scope="col" class="py-3 border-0 text-muted">Ministry / State</th>
+                        <th scope="col" class="py-3 border-0 text-muted text-center">Status</th>
+                        <th scope="col" class="py-3 border-0 text-muted text-center">Progress</th>
+                        <th scope="col" class="py-3 border-0 text-muted">Last Updated</th>
+                        <th scope="col" class="py-3 px-3 border-0 text-end text-muted">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project in projects %}
+                    <tr>
+                        <td class="px-3 fw-medium text-nowrap">{{ project.project_id }}</td>
+                        <td>
+                            <div class="text-truncate" style="max-width: 250px;" title="{{ project.name }}">{{ project.name }}</div>
+                        </td>
+                        <td>
+                            <div class="small text-truncate" style="max-width: 150px;">{{ project.ministry }}</div>
+                            <div class="small text-muted">{{ project.state }}</div>
+                        </td>
+                        <td class="text-center">
+                            {% if project.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                            {% elif project.status == 'ongoing' %}
+                            <span class="badge bg-primary">Ongoing</span>
+                            {% elif project.status == 'delayed' %}
+                            <span class="badge bg-danger">Delayed</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Not Started</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <span class="fw-medium">{{ project.physical_progress|default:0|floatformat:1 }}%</span>
+                        </td>
+                        <td class="small text-muted text-nowrap">
+                            {{ project.updated_at|date:"d M Y"|default:"Recently" }}
+                        </td>
+                        <td class="px-3 text-end text-nowrap">
+                            <a href="{% url 'project_detail' project.project_id|default:project.id %}" class="btn btn-sm btn-outline-info" title="View"><i class="fa-solid fa-eye"></i></a>
+                            <a href="{% url 'project_edit' project.project_id|default:project.id %}" class="btn btn-sm btn-outline-primary mx-1" title="Edit"><i class="fa-solid fa-edit"></i></a>
+                            
+                            <form action="{% url 'project_delete' project.project_id|default:project.id %}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this project? This action cannot be undone.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"><i class="fa-solid fa-trash-alt"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4">No projects available in the database.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="small text-muted">Showing all records</span>
+                <!-- Pagination could go here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="container py-5 text-center">
+    <div class="card shadow-sm mx-auto" style="max-width: 500px;">
+        <div class="card-body p-5">
+            <i class="fa-solid fa-lock fa-4x text-muted mb-3"></i>
+            <h3 class="mb-3">Access Denied</h3>
+            <p class="text-muted mb-4">You must be logged in as an administrator to access the database management section.</p>
+            <a href="{% url 'login' %}" class="btn btn-primary px-4">Login Now</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

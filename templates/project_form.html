@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ action }} - IIPMP{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold" style="color: #003366;">{{ action }} Project</h2>
+                <a href="{% url 'database_manage' %}" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-arrow-left me-1"></i> Back</a>
+            </div>
+
+            {% if form.errors %}
+            <div class="alert alert-danger shadow-sm">
+                <p class="fw-bold mb-1"><i class="fa-solid fa-triangle-exclamation me-1"></i> Please correct the following errors:</p>
+                <ul class="mb-0">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <form method="POST" class="needs-validation">
+                {% csrf_token %}
+                
+                <!-- Basic Information -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3 border-bottom text-navy fw-bold">
+                        <i class="fa-solid fa-info-circle me-2 text-muted"></i> Basic Information
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="{{ form.project_id.id_for_label }}" class="form-label small fw-bold">Project ID *</label>
+                                    {{ form.project_id }}
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="form-group">
+                                    <label for="{{ form.name.id_for_label }}" class="form-label small fw-bold">Project Name *</label>
+                                    {{ form.name }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.ministry.id_for_label }}" class="form-label small fw-bold">Ministry *</label>
+                                    {{ form.ministry }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.department.id_for_label }}" class="form-label small fw-bold">Department</label>
+                                    {{ form.department }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.state.id_for_label }}" class="form-label small fw-bold">State *</label>
+                                    {{ form.state }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.agency.id_for_label }}" class="form-label small fw-bold">Implementing Agency</label>
+                                    {{ form.agency }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Details -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3 border-bottom text-navy fw-bold">
+                        <i class="fa-solid fa-coins me-2 text-muted"></i> Financial Details (in ₹ Crores)
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.approved_cost.id_for_label }}" class="form-label small fw-bold">Approved Cost *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₹</span>
+                                        {{ form.approved_cost }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.revised_cost.id_for_label }}" class="form-label small fw-bold">Revised Cost</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₹</span>
+                                        {{ form.revised_cost }}
+                                    </div>
+                                    <div class="form-text small">Leave blank if not revised</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.expenditure.id_for_label }}" class="form-label small fw-bold">Cumulative Expenditure</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₹</span>
+                                        {{ form.expenditure }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline & Progress -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3 border-bottom text-navy fw-bold">
+                        <i class="fa-regular fa-calendar-check me-2 text-muted"></i> Timeline & Progress
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.start_date.id_for_label }}" class="form-label small fw-bold">Start Date</label>
+                                    {{ form.start_date }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.expected_completion.id_for_label }}" class="form-label small fw-bold">Expected Completion Date</label>
+                                    {{ form.expected_completion }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.physical_progress.id_for_label }}" class="form-label small fw-bold">Physical Progress (%)</label>
+                                    <div class="input-group">
+                                        {{ form.physical_progress }}
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.financial_progress.id_for_label }}" class="form-label small fw-bold">Financial Progress (%)</label>
+                                    <div class="input-group">
+                                        {{ form.financial_progress }}
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.status.id_for_label }}" class="form-label small fw-bold">Current Status *</label>
+                                    {{ form.status }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Info -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3 border-bottom text-navy fw-bold">
+                        <i class="fa-solid fa-align-left me-2 text-muted"></i> Description
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="{{ form.description.id_for_label }}" class="form-label small fw-bold visually-hidden">Project Description</label>
+                            {{ form.description }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Section -->
+                <div class="d-flex justify-content-end gap-2 mb-5">
+                    <a href="{% url 'database_manage' %}" class="btn btn-light px-4">Cancel</a>
+                    <button type="submit" class="btn btn-primary px-5" style="background-color: #003366;">
+                        <i class="fa-solid fa-save me-2"></i> Save Project
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Add bootstrap form classes to all inputs if not added by django forms
+    document.addEventListener("DOMContentLoaded", function() {
+        const inputs = document.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            if (input.type !== 'submit' && input.type !== 'hidden' && input.type !== 'checkbox') {
+                input.classList.add('form-control');
+                if (input.tagName === 'SELECT') {
+                    input.classList.add('form-select');
+                    input.classList.remove('form-control');
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

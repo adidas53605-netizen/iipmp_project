@@ -1,0 +1,740 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Project Dashboard - IIPMP{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ===== Dashboard Layout & Structure ===== */
+.dashboard-layout {
+    display: flex;
+    min-height: calc(100vh - 180px);
+}
+
+/* ===== Sidebar ===== */
+.dash-sidebar {
+    width: 250px;
+    background: #ffffff;
+    border-right: 1px solid #E2E8F0;
+    padding: 0;
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 99;
+    flex-shrink: 0;
+}
+.dash-sidebar.collapsed {
+    width: 68px;
+}
+.dash-sidebar.collapsed .sb-text,
+.dash-sidebar.collapsed .sb-header-text,
+.dash-sidebar.collapsed .sb-section-label { display: none; }
+.dash-sidebar.collapsed .sb-link { justify-content: center; padding: 12px 0; }
+.dash-sidebar.collapsed .sb-icon { margin-right: 0; font-size: 1.15rem; }
+
+.sb-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid #E2E8F0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.sb-header-text {
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #003366;
+}
+.sb-toggle {
+    background: none;
+    border: none;
+    color: #64748B;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+.sb-toggle:hover { background: #F1F5F9; color: #003366; }
+
+.sb-nav { padding: 8px 0; }
+.sb-section-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #94A3B8;
+    padding: 16px 20px 6px;
+    margin: 0;
+}
+.sb-link {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    color: #475569;
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+    margin: 1px 0;
+}
+.sb-link:hover {
+    background: #F8FAFC;
+    color: #003366;
+    border-left-color: #CBD5E1;
+}
+.sb-link.active {
+    background: linear-gradient(90deg, rgba(0,51,102,0.08), transparent);
+    color: #003366;
+    font-weight: 600;
+    border-left-color: #003366;
+}
+.sb-icon {
+    width: 20px;
+    text-align: center;
+    margin-right: 12px;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+.sb-badge {
+    margin-left: auto;
+    background: #DC3545;
+    color: #ffffff;
+    font-size: 0.65rem;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 700;
+}
+
+/* Sidebar Overlay (mobile) */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 98;
+    backdrop-filter: blur(2px);
+}
+.sidebar-overlay.show { display: block; }
+
+/* Mobile sidebar toggle button */
+.mobile-sidebar-btn {
+    display: none;
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    z-index: 200;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #003366;
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0,51,102,0.4);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.mobile-sidebar-btn:hover { transform: scale(1.1); }
+
+/* ===== Main Content Area ===== */
+.dash-content {
+    flex: 1;
+    padding: 28px 32px;
+    background: #F4F6F9;
+    min-width: 0;
+    transition: all 0.3s;
+}
+
+/* ===== Page Header & Actions ===== */
+.dash-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 26px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.dash-header h2 {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #003366;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+.dash-header .subtitle {
+    color: #64748B;
+    font-size: 0.9rem;
+    margin: 2px 0 0;
+}
+.dash-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.btn-export {
+    background: #ffffff;
+    border: 1.5px solid #003366;
+    color: #003366;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.btn-export:hover {
+    background: #F0F4F8;
+    border-color: #002244;
+    color: #002244;
+    box-shadow: 0 3px 8px rgba(0,51,102,0.12);
+    transform: translateY(-1px);
+}
+
+.btn-refresh {
+    background: linear-gradient(135deg, #FF9933 0%, #F59E0B 100%);
+    border: none;
+    color: #002244;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(255,153,51,0.3);
+}
+.btn-refresh:hover {
+    background: linear-gradient(135deg, #F59E0B 0%, #E67E22 100%);
+    box-shadow: 0 4px 14px rgba(255,153,51,0.45);
+    transform: translateY(-1px);
+}
+.btn-refresh .spinner { display: none; }
+.btn-refresh.loading .spinner { display: inline-block; }
+.btn-refresh.loading .btn-text { display: none; }
+
+@keyframes spinCustom { to { transform: rotate(360deg); } }
+.fa-spin-custom { animation: spinCustom 0.8s linear infinite; }
+
+/* ===== KPI Cards ===== */
+.kpi-card-col {
+    opacity: 0;
+    animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.kpi-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02);
+    display: flex;
+    align-items: center;
+    border: 1px solid #E2E8F0;
+    border-left-width: 5px;
+    height: 100%;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+.kpi-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 75px;
+    height: 75px;
+    border-radius: 50%;
+    opacity: 0.035;
+    transform: translate(20px, -20px);
+}
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+.kpi-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    margin-right: 16px;
+    flex-shrink: 0;
+}
+.kpi-info { flex-grow: 1; }
+.kpi-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0;
+    color: #1A1A2E;
+    line-height: 1.2;
+    letter-spacing: -0.3px;
+}
+.kpi-label {
+    color: #64748B;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    margin: 4px 0 0;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* Color Accent Variations for Cards */
+.card-navy { border-left-color: #003366 !important; }
+.card-navy .kpi-icon { background: rgba(0,51,102,0.08); color: #003366; }
+.card-navy::after { background: #003366; }
+
+.card-blue { border-left-color: #0ea5e9 !important; }
+.card-blue .kpi-icon { background: rgba(14,165,233,0.1); color: #0ea5e9; }
+.card-blue::after { background: #0ea5e9; }
+
+.card-green { border-left-color: #22c55e !important; }
+.card-green .kpi-icon { background: rgba(34,197,94,0.1); color: #22c55e; }
+.card-green::after { background: #22c55e; }
+
+.card-red { border-left-color: #ef4444 !important; }
+.card-red .kpi-icon { background: rgba(239,68,68,0.1); color: #ef4444; }
+.card-red::after { background: #ef4444; }
+
+.card-grey { border-left-color: #64748b !important; }
+.card-grey .kpi-icon { background: rgba(100,116,139,0.1); color: #64748b; }
+.card-grey::after { background: #64748b; }
+
+.card-purple { border-left-color: #8b5cf6 !important; }
+.card-purple .kpi-icon { background: rgba(139,92,246,0.1); color: #8b5cf6; }
+.card-purple::after { background: #8b5cf6; }
+
+.card-amber { border-left-color: #f59e0b !important; }
+.card-amber .kpi-icon { background: rgba(245,158,11,0.1); color: #f59e0b; }
+.card-amber::after { background: #f59e0b; }
+
+.card-teal { border-left-color: #14b8a6 !important; }
+.card-teal .kpi-icon { background: rgba(20,184,166,0.1); color: #14b8a6; }
+.card-teal::after { background: #14b8a6; }
+
+.card-violet { border-left-color: #7c3aed !important; }
+.card-violet .kpi-icon { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.card-violet::after { background: #7c3aed; }
+
+.card-emerald { border-left-color: #10b981 !important; }
+.card-emerald .kpi-icon { background: rgba(16,185,129,0.1); color: #10b981; }
+.card-emerald::after { background: #10b981; }
+
+/* ===== Chart Cards ===== */
+.chart-card-col {
+    opacity: 0;
+    animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.chart-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02);
+    border: 1px solid #E2E8F0;
+    height: 100%;
+    transition: all 0.25s ease;
+}
+.chart-card:hover {
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+}
+.chart-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #F1F5F9;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #003366;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #FAFBFD;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+.chart-header i { color: #94A3B8; font-size: 1rem; }
+.chart-body {
+    padding: 20px;
+    position: relative;
+    height: 320px;
+    width: 100%;
+}
+
+/* ===== Toast Notification ===== */
+.toast-container {
+    position: fixed;
+    top: 80px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.custom-toast {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 14px 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 320px;
+    animation: slideIn 0.35s ease;
+    border-left: 4px solid #22c55e;
+}
+.custom-toast.error { border-left-color: #EF4444; }
+.custom-toast .toast-icon { font-size: 1.2rem; }
+.custom-toast .toast-msg { font-size: 0.88rem; font-weight: 600; color: #1A1A2E; }
+.custom-toast .toast-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: #94A3B8;
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 1.1rem;
+}
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
+
+/* ===== Sub-Footer Bar ===== */
+.dashboard-subfooter {
+    background: #002244;
+    color: #94A3B8;
+    padding: 14px 0;
+    font-size: 0.82rem;
+    text-align: center;
+    border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ===== Print Styles ===== */
+@media print {
+    .dash-sidebar, .sidebar-overlay, .mobile-sidebar-btn, .dash-actions,
+    .navbar, .gov-stripe, .footer, .toast-container { display: none !important; }
+    .dashboard-layout { display: block !important; }
+    .dash-content { padding: 0 !important; background: #ffffff !important; }
+    .kpi-card { break-inside: avoid; box-shadow: none !important; border: 1px solid #e5e5e5; }
+    .chart-card { break-inside: avoid; box-shadow: none !important; border: 1px solid #e5e5e5; page-break-inside: avoid; }
+    .chart-body { height: 260px !important; }
+}
+
+/* ===== Responsive Breakpoints ===== */
+@media (max-width: 991.98px) {
+    .dash-sidebar {
+        position: fixed;
+        top: 0;
+        left: -260px;
+        height: 100vh;
+        z-index: 200;
+        box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+    }
+    .dash-sidebar.mobile-open {
+        left: 0;
+    }
+    .mobile-sidebar-btn { display: flex; align-items: center; justify-content: center; }
+    .dash-content { padding: 20px 16px; }
+    .dash-header h2 { font-size: 1.35rem; }
+    .kpi-value { font-size: 1.35rem; }
+}
+@media (max-width: 575.98px) {
+    .dash-header { flex-direction: column; align-items: flex-start; }
+    .dash-actions { width: 100%; }
+    .btn-export, .btn-refresh { flex: 1; justify-content: center; }
+    .chart-body { height: 260px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-layout">
+    <!-- ===== Sidebar Navigation ===== -->
+    <aside class="dash-sidebar" id="dashSidebar">
+        <div class="sb-header">
+            <span class="sb-header-text">Navigation</span>
+            <button class="sb-toggle" id="sidebarToggle" title="Toggle sidebar">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
+        <nav class="sb-nav">
+            <p class="sb-section-label">Main</p>
+            <a href="{% url 'dashboard' %}" class="sb-link active">
+                <span class="sb-icon"><i class="fa-solid fa-gauge-high"></i></span>
+                <span class="sb-text">Dashboard</span>
+            </a>
+            <a href="{% url 'project_list' %}" class="sb-link">
+                <span class="sb-icon"><i class="fa-solid fa-list-check"></i></span>
+                <span class="sb-text">Projects</span>
+            </a>
+            <a href="{% url 'analytics' %}" class="sb-link">
+                <span class="sb-icon"><i class="fa-solid fa-chart-line"></i></span>
+                <span class="sb-text">Progress</span>
+            </a>
+            <a href="{% url 'budget' %}" class="sb-link">
+                <span class="sb-icon"><i class="fa-solid fa-indian-rupee-sign"></i></span>
+                <span class="sb-text">Budget</span>
+            </a>
+
+            <p class="sb-section-label">Analysis</p>
+            <a href="{% url 'states' %}" class="sb-link {% block nav_states %}{% endblock %}">
+                <span class="sb-icon"><i class="fa-solid fa-map-location-dot"></i></span>
+                <span class="sb-text">States</span>
+            </a>
+            <a href="{% url 'ministries' %}" class="sb-link {% block nav_ministries %}{% endblock %}">
+                <span class="sb-icon"><i class="fa-solid fa-building-columns"></i></span>
+                <span class="sb-text">Ministries</span>
+            </a>
+            <a href="{% url 'review' %}" class="sb-link">
+                <span class="sb-icon"><i class="fa-solid fa-file-lines"></i></span>
+                <span class="sb-text">Reports</span>
+                <span class="sb-badge">3</span>
+            </a>
+
+            <p class="sb-section-label">System</p>
+            <a href="{% url 'alerts' %}" class="sb-link">
+                <span class="sb-icon"><i class="fa-solid fa-bell"></i></span>
+                <span class="sb-text">Alerts</span>
+            </a>
+            <a href="{% url 'help' %}" class="sb-link">
+                <span class="sb-icon"><i class="fa-solid fa-circle-question"></i></span>
+                <span class="sb-text">Help</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Mobile Sidebar Button -->
+    <button class="mobile-sidebar-btn" id="mobileSidebarBtn" title="Menu">
+        <i class="fa-solid fa-bars"></i>
+    </button>
+
+    <!-- ===== Main Content Area ===== -->
+    <main class="dash-content" id="dashContent">
+        <!-- Page Header -->
+        <div class="dash-header">
+            <div>
+                <h2><i class="fa-solid fa-gauge-high me-2" style="color:#FF9933;"></i>Project Dashboard</h2>
+                <p class="subtitle">Real-time overview of all infrastructure projects</p>
+            </div>
+            <div class="dash-actions">
+                <button class="btn-export" id="btnExport" title="Export current dashboard report as CSV">
+                    <i class="fa-solid fa-download"></i> Export Report
+                </button>
+                <button class="btn-refresh" id="btnRefresh" title="Refresh dashboard data">
+                    <span class="spinner"><i class="fa-solid fa-spinner fa-spin-custom"></i> Refreshing...</span>
+                    <span class="btn-text"><i class="fa-solid fa-arrows-rotate"></i> Refresh Data</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== 11 Stat Cards Grid ===== -->
+        <div class="row g-3 mb-4">
+            <!-- 1. Total Projects -->
+            <div class="col-xxl-3 col-xl-4 col-md-6 kpi-card-col" style="animation-delay: 0.05s;">
+                <div class="kpi-card card-navy">
+                    <div class="kpi-icon"><i class="fa-solid fa-folder-open"></i></div>
+                    <div class="kpi-info">
+                        <h3 class="kpi-value">{{ total_projects|default:"54" }}</h3>
+                        <p class="kpi-label">Total Projects</p>
+                    </div>
+                </div>
+            </div>
+            <!-- 2. Ongoing -->
+            <div class="col-xxl-3 col-xl-4 col-md-6 kpi-card-col" style="animation-delay: 0.09s;">
+                <div class="kpi-card card-blue">
+                    <div class="kpi-icon"><i class="fa-solid fa-cogs"></i></div>
+                    <div class="kpi-info">
+                        <h3 class="kpi-value">{{ ongoing_count|default:"25" }}</h3>
+                        <p class="kpi-label">Ongoing</p>
+                    </div>
+                </div>
+            </div>
+            <!-- 3. Completed -->
+            <div class="col-xxl-3 col-xl-4 col-md-6 kpi-card-col" style="animation-delay: 0.13s;">
+                <div class="kpi-card card-green">
+                    <div class="kpi-icon"><i class="fa-solid fa-check-double"></i></div>
+                    <div class="kpi-info">
+                        <h3 class="kpi-value">{{ completed_count|default:"4" }}</h3>
+                        <p class="kpi-label">Completed</p>
+                    </div>
+                </div>
+            </div>
+            <!-- 4. Delayed -->
+            <div class="col-xxl-3 col-xl-4 col-md-6 kpi-card-col" style="animation-delay: 0.17s;">
+                <div class="kpi-card card-red">
+                    <div class="kpi-icon"><i class="fa-solid fa-clock"></i></div>
+                    <div class="kpi-info">
+                        <h3 class="kpi-value">{{ delayed_count|default:"15" }}</h3>
+                        <p class="kpi-label">Delayed</p>
+                    </div>
+                </div>
+            </div>
+            <!-- 5. On Hold -->
+            <div class="col-xxl-3 col-xl-4 col-md-6 kpi-card-col" style="animation-delay: 0.21s;">
+                <div class="kpi-card card-grey">
+                    <div class="kpi-icon"><i class="fa-solid fa-pause-circle"></i></div>
+                    <div class="kpi-info">
+                        <h3 class="kpi-value">{{ not_started_count|default:"5" }}</h3>
+                        <p class="kpi-label">On Hold</p>
+                    </div>
+                </div>
+            </div>
+            <!-- 6. New Added -->
+            <div class="col-xxl-3 col-xl-4 col-md-6 kpi-card-col" style="animation-delay: 0.25s;">
+                <div class="kpi-card card-purple">
+                    <div class="kpi-icon"><i class="fa-solid fa-plus-circle"></i></div>
+                    <div class="kpi-info">
+                        <h3 class="kpi-value">{{ new_added_count|default:"2" }}</h3>
+                        <p class="kpi-label">New Added</p>
+                    </div>
+                </div>
+            </div>
+            <!-- 7. At Risk -->
+            <div class="col-xxl-3 col-xl-4 col-md-6 kpi-card-col" style="animation-delay: 0.29s;">
+                <div class="kpi-card card-amber">
+                    <div class="kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="kpi-info">
+                        <h3 class="kpi-value">{{ at_risk_count|default:"3" }}</h3>
+                        <p class="kpi-label">At Risk</p>
+                    </div>
+                </div>
+            </div>
+            <!-- 8. Approved Cost -->
+            <div class="col-xxl-3 col-xl-4 col-md-6 kpi-card-col" style="animation-delay: 0.33s;">
+                <div class="kpi-card card-teal">
+                    <div class="kpi-icon"><i class="fa-solid fa-coins"></i></div>
+                    <div class="kpi-info">
+                        <h3 class="kpi-value">₹65,450 Cr</h3>
+                        <p class="kpi-label">Approved Cost</p>
+                    </div>
+                </div>
+            </div>
+            <!-- 9. Expenditure -->
+            <div class="col-xxl-3 col-xl-4 col-md-6 kpi-card-col" style="animation-delay: 0.37s;">
+                <div class="kpi-card card-purple">
+                    <div class="kpi-icon"><i class="fa-solid fa-receipt"></i></div>
+                    <div class="kpi-info">
+                        <h3 class="kpi-value">₹34,220 Cr</h3>
+                        <p class="kpi-label">Expenditure</p>
+                    </div>
+                </div>
+            </div>
+            <!-- 10. Avg Progress -->
+            <div class="col-xxl-3 col-xl-4 col-md-6 kpi-card-col" style="animation-delay: 0.41s;">
+                <div class="kpi-card card-violet">
+                    <div class="kpi-icon"><i class="fa-solid fa-tasks"></i></div>
+                    <div class="kpi-info">
+                        <h3 class="kpi-value">61.3%</h3>
+                        <p class="kpi-label">Avg Progress</p>
+                    </div>
+                </div>
+            </div>
+            <!-- 11. Years to Finish -->
+            <div class="col-xxl-3 col-xl-4 col-md-6 kpi-card-col" style="animation-delay: 0.45s;">
+                <div class="kpi-card card-emerald">
+                    <div class="kpi-icon"><i class="fa-solid fa-calendar-check"></i></div>
+                    <div class="kpi-info">
+                        <h3 class="kpi-value">5</h3>
+                        <p class="kpi-label">Years to Finish (Approx)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Chart Section Row 1 ===== -->
+        <div class="row g-4 mb-4">
+            <!-- Project Status Distribution (Donut Chart) -->
+            <div class="col-lg-6 chart-card-col" style="animation-delay: 0.48s;">
+                <div class="chart-card">
+                    <div class="chart-header"><i class="fa-solid fa-chart-pie"></i> Project Status Distribution</div>
+                    <div class="chart-body"><canvas id="statusChart"></canvas></div>
+                </div>
+            </div>
+            <!-- Project-wise Physical Progress (Horizontal Bar Chart) -->
+            <div class="col-lg-6 chart-card-col" style="animation-delay: 0.52s;">
+                <div class="chart-card">
+                    <div class="chart-header"><i class="fa-solid fa-bars-progress"></i> Project-wise Physical Progress</div>
+                    <div class="chart-body"><canvas id="progressChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Chart Section Row 2 ===== -->
+        <div class="row g-4 mb-4">
+            <!-- Cost Analysis (Grouped Bar Chart) -->
+            <div class="col-lg-6 chart-card-col" style="animation-delay: 0.56s;">
+                <div class="chart-card">
+                    <div class="chart-header"><i class="fa-solid fa-money-bill-trend-up"></i> Cost Analysis (Top Projects)</div>
+                    <div class="chart-body"><canvas id="costChart"></canvas></div>
+                </div>
+            </div>
+            <!-- State-wise Projects (Horizontal Bar Chart) -->
+            <div class="col-lg-6 chart-card-col" style="animation-delay: 0.60s;">
+                <div class="chart-card">
+                    <div class="chart-header"><i class="fa-solid fa-map-location-dot"></i> State-wise Projects</div>
+                    <div class="chart-body"><canvas id="stateChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Chart Section Row 3 ===== -->
+        <div class="row g-4 mb-4">
+            <!-- Ministry-wise Projects (Horizontal Bar Chart) -->
+            <div class="col-lg-6 chart-card-col" style="animation-delay: 0.64s;">
+                <div class="chart-card">
+                    <div class="chart-header"><i class="fa-solid fa-building-columns"></i> Ministry-wise Projects</div>
+                    <div class="chart-body"><canvas id="ministryChart"></canvas></div>
+                </div>
+            </div>
+            <!-- Monthly Progress Trend (Line Chart) -->
+            <div class="col-lg-6 chart-card-col" style="animation-delay: 0.68s;">
+                <div class="chart-card">
+                    <div class="chart-header"><i class="fa-solid fa-chart-line"></i> Monthly Progress Trend</div>
+                    <div class="chart-body"><canvas id="monthlyChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Sub-Footer Bar -->
+<div class="dashboard-subfooter">
+    <div class="container">
+        <span><i class="fa-solid fa-shield-cat me-1 text-warning"></i> IIPMP — Integrated Infrastructure Project Monitoring Portal (Preview)</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.statusData = {{ status_data|default:"{}" |safe }};
+    window.progressData = {{ progress_data|default:"{}" |safe }};
+    window.costData = {{ cost_data|default:"{}" |safe }};
+    window.stateData = {{ state_data|default:"{}" |safe }};
+    window.ministryData = {{ ministry_data|default:"{}" |safe }};
+    window.monthlyData = {{ monthly_data|default:"{}" |safe }};
+</script>
+<script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}

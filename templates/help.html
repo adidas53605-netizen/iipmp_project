@@ -1,0 +1,1235 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Help & Feedback - IIPMP{% endblock %}
+{% block nav_help %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ===== Help & Feedback Page Custom Styles ===== */
+
+    /* Hero Section */
+    .help-hero {
+        background: linear-gradient(135deg, #002244 0%, #003366 65%, #004488 100%);
+        color: #ffffff;
+        padding: 50px 0 45px;
+        position: relative;
+        overflow: hidden;
+        border-bottom: 4px solid #FF9933;
+    }
+    .help-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(255, 153, 51, 0.12) 0%, rgba(0, 51, 102, 0) 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .help-hero h1 {
+        font-size: 2.3rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+    }
+    .help-hero .lead {
+        font-size: 1.05rem;
+        color: #E2E8F0;
+    }
+
+    /* System Status Banner */
+    .status-banner {
+        background: rgba(34, 197, 94, 0.12);
+        border: 1px solid rgba(34, 197, 94, 0.35);
+        color: #dcfce7;
+        border-radius: 50px;
+        padding: 8px 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.88rem;
+        font-weight: 500;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+    .pulse-container {
+        position: relative;
+        width: 10px;
+        height: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .pulse-dot {
+        width: 10px;
+        height: 10px;
+        background-color: #22c55e;
+        border-radius: 50%;
+        position: absolute;
+    }
+    .pulse-ring {
+        width: 18px;
+        height: 18px;
+        background-color: rgba(34, 197, 94, 0.5);
+        border-radius: 50%;
+        animation: pulseAnimation 1.8s infinite ease-out;
+    }
+    @keyframes pulseAnimation {
+        0% { transform: scale(0.5); opacity: 0.9; }
+        100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    /* Category Cards */
+    .category-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 22px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        border: 1px solid #E2E8F0;
+        border-left-width: 5px;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        height: 100%;
+        position: relative;
+    }
+    .category-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+    }
+    .category-card.navy { border-left-color: #003366; }
+    .category-card.blue { border-left-color: #0ea5e9; }
+    .category-card.green { border-left-color: #22c55e; }
+    .category-card.purple { border-left-color: #8b5cf6; }
+
+    .cat-icon-wrapper {
+        width: 46px;
+        height: 46px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        margin-bottom: 14px;
+    }
+    .cat-icon-wrapper.navy { background: rgba(0, 51, 102, 0.08); color: #003366; }
+    .cat-icon-wrapper.blue { background: rgba(14, 165, 233, 0.1); color: #0ea5e9; }
+    .cat-icon-wrapper.green { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+    .cat-icon-wrapper.purple { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+
+    .category-card h6 {
+        font-weight: 700;
+        color: #1A1A2E;
+        margin-bottom: 6px;
+        font-size: 1.02rem;
+    }
+    .category-card p {
+        color: #64748B;
+        font-size: 0.85rem;
+        margin: 0;
+        line-height: 1.45;
+    }
+
+    /* Tabs Styling */
+    .help-tabs-nav {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        border: 1px solid #E2E8F0;
+    }
+    .help-tabs-nav .nav-link {
+        color: #475569;
+        font-weight: 600;
+        font-size: 0.92rem;
+        border-radius: 8px;
+        padding: 12px 20px;
+        border: none;
+        transition: all 0.2s ease;
+    }
+    .help-tabs-nav .nav-link:hover {
+        color: #003366;
+        background: #F8FAFC;
+    }
+    .help-tabs-nav .nav-link.active {
+        background: #003366;
+        color: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(0, 51, 102, 0.25);
+    }
+
+    /* FAQ Category Tag Chips */
+    .chip-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .faq-chip {
+        border: 1px solid #CBD5E1;
+        background: #ffffff;
+        color: #475569;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        padding: 6px 14px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+    }
+    .faq-chip:hover {
+        border-color: #003366;
+        color: #003366;
+        background: #F1F5F9;
+    }
+    .faq-chip.active {
+        background: #003366;
+        color: #ffffff;
+        border-color: #003366;
+        box-shadow: 0 2px 6px rgba(0, 51, 102, 0.2);
+    }
+    .faq-chip[data-cat="GETTING STARTED"].active { background: #003366; border-color: #003366; }
+    .faq-chip[data-cat="MONITORING"].active { background: #0ea5e9; border-color: #0ea5e9; }
+    .faq-chip[data-cat="REPORTS"].active { background: #22c55e; border-color: #22c55e; }
+    .faq-chip[data-cat="ACCESS"].active { background: #8b5cf6; border-color: #8b5cf6; }
+    .faq-chip[data-cat="DATA"].active { background: #f59e0b; border-color: #f59e0b; }
+
+    /* FAQ Accordion Styling */
+    .faq-accordion .accordion-item {
+        border: 1px solid #E2E8F0;
+        border-radius: 10px !important;
+        margin-bottom: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    .faq-accordion .accordion-button {
+        font-weight: 600;
+        color: #1A1A2E;
+        font-size: 0.95rem;
+        padding: 16px 20px;
+        background: #ffffff;
+        box-shadow: none !important;
+    }
+    .faq-accordion .accordion-button:not(.collapsed) {
+        background: rgba(0, 51, 102, 0.04);
+        color: #003366;
+    }
+    .faq-accordion .accordion-body {
+        padding: 18px 20px;
+        color: #475569;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        background: #ffffff;
+        border-top: 1px solid #F1F5F9;
+    }
+    .faq-badge {
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 4px;
+        margin-right: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Ticket Status Styling */
+    .ticket-search-box {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 24px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+
+    .ticket-status-card {
+        background: #ffffff;
+        border-radius: 12px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        overflow: hidden;
+        animation: fadeIn 0.3s ease-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .ticket-header {
+        background: #003366;
+        color: #ffffff;
+        padding: 18px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    /* Timeline steps */
+    .timeline-steps {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+        margin: 25px 0 10px;
+    }
+    .timeline-steps::before {
+        content: '';
+        position: absolute;
+        top: 14px;
+        left: 5%;
+        right: 5%;
+        height: 3px;
+        background: #E2E8F0;
+        z-index: 1;
+    }
+    .timeline-step {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        width: 25%;
+    }
+    .step-icon-circle {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #E2E8F0;
+        color: #64748B;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        margin: 0 auto 8px;
+        font-weight: 700;
+        border: 3px solid #ffffff;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .timeline-step.completed .step-icon-circle {
+        background: #22c55e;
+        color: #ffffff;
+    }
+    .timeline-step.active .step-icon-circle {
+        background: #FF9933;
+        color: #ffffff;
+        box-shadow: 0 0 0 4px rgba(255, 153, 51, 0.25);
+    }
+    .step-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748B;
+    }
+    .timeline-step.completed .step-title,
+    .timeline-step.active .step-title {
+        color: #1A1A2E;
+        font-weight: 700;
+    }
+
+    /* Feedback Form */
+    .feedback-card {
+        background: #ffffff;
+        border-radius: 12px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        padding: 28px;
+    }
+    .char-counter {
+        font-size: 0.78rem;
+        color: #64748B;
+        font-weight: 500;
+    }
+
+    /* Contact Cards */
+    .contact-card {
+        background: #ffffff;
+        border-radius: 12px;
+        border: 1px solid #E2E8F0;
+        padding: 24px;
+        text-align: center;
+        height: 100%;
+        transition: all 0.25s ease;
+    }
+    .contact-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    }
+    .contact-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        margin: 0 auto 16px;
+    }
+
+    /* Bottom Subfooter Bar */
+    .preview-footer-bar {
+        background: #002244;
+        color: #94A3B8;
+        padding: 14px 0;
+        font-size: 0.82rem;
+        text-align: center;
+        border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    @media (max-width: 767.98px) {
+        .help-hero { padding: 35px 0 30px; text-align: center; }
+        .status-banner { font-size: 0.8rem; width: 100%; justify-content: center; }
+        .help-tabs-nav .nav-link { padding: 10px 12px; font-size: 0.82rem; }
+        .timeline-steps { font-size: 0.65rem; }
+        .step-icon-circle { width: 26px; height: 26px; font-size: 0.7rem; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- ===== Hero Section ===== -->
+<section class="help-hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <div class="mb-2">
+                    <span class="badge bg-warning text-dark font-weight-bold uppercase" style="font-size: 0.7rem; letter-spacing: 1px;">Support Center</span>
+                </div>
+                <h1 class="mb-2"><i class="fa-solid fa-headset me-2 text-warning"></i>Help & Feedback</h1>
+                <p class="lead mb-3">Guides for using IIPMP, and a direct line to the project team.</p>
+                
+                <!-- Live System Status Banner -->
+                <div class="status-banner">
+                    <div class="pulse-container">
+                        <div class="pulse-ring"></div>
+                        <div class="pulse-dot"></div>
+                    </div>
+                    <span>All systems operational — project sync, dashboards, and report exports are running normally.</span>
+                </div>
+            </div>
+            <div class="col-lg-4 d-none d-lg-block text-end opacity-75">
+                <i class="fa-solid fa-building-columns text-light opacity-25" style="font-size: 9rem;"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container py-4">
+    <!-- ===== Category Cards Row ===== -->
+    <div class="row g-3 mb-4">
+        <!-- 1. Getting Started -->
+        <div class="col-xl-3 col-md-6">
+            <div class="category-card navy" onclick="selectFaqCategory('GETTING STARTED')">
+                <div class="cat-icon-wrapper navy">
+                    <i class="fa-solid fa-compass"></i>
+                </div>
+                <h6>Getting Started</h6>
+                <p>Learn platform basics, navigation structure, and project search workflows.</p>
+            </div>
+        </div>
+        <!-- 2. Project Monitoring -->
+        <div class="col-xl-3 col-md-6">
+            <div class="category-card blue" onclick="selectFaqCategory('MONITORING')">
+                <div class="cat-icon-wrapper blue">
+                    <i class="fa-solid fa-gauge-high"></i>
+                </div>
+                <h6>Project Monitoring</h6>
+                <p>Track timeline progress, financial spend, and automated risk benchmarks.</p>
+            </div>
+        </div>
+        <!-- 3. Reports & Exports -->
+        <div class="col-xl-3 col-md-6">
+            <div class="category-card green" onclick="selectFaqCategory('REPORTS')">
+                <div class="cat-icon-wrapper green">
+                    <i class="fa-solid fa-file-export"></i>
+                </div>
+                <h6>Reports & Exports</h6>
+                <p>Generate CSV summaries, milestone reports, and executive analytics.</p>
+            </div>
+        </div>
+        <!-- 4. Roles & Access -->
+        <div class="col-xl-3 col-md-6">
+            <div class="category-card purple" onclick="selectFaqCategory('ACCESS')">
+                <div class="cat-icon-wrapper purple">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <h6>Roles & Access</h6>
+                <p>Understand user permissions, administrative rights, and nodal access.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Navigation Tabs ===== -->
+    <ul class="nav nav-pills help-tabs-nav mb-4" id="helpTabs" role="tablist">
+        <li class="nav-item flex-fill" role="presentation">
+            <button class="nav-link w-100 active" id="tab-faq-btn" data-bs-toggle="pill" data-bs-target="#tab-faq" type="button" role="tab" aria-controls="tab-faq" aria-selected="true">
+                <i class="fa-solid fa-circle-question me-2"></i>Frequently Asked Questions
+            </button>
+        </li>
+        <li class="nav-item flex-fill" role="presentation">
+            <button class="nav-link w-100" id="tab-ticket-btn" data-bs-toggle="pill" data-bs-target="#tab-ticket" type="button" role="tab" aria-controls="tab-ticket" aria-selected="false">
+                <i class="fa-solid fa-magnifying-glass me-2"></i>Track a Ticket
+            </button>
+        </li>
+        <li class="nav-item flex-fill" role="presentation">
+            <button class="nav-link w-100" id="tab-feedback-btn" data-bs-toggle="pill" data-bs-target="#tab-feedback" type="button" role="tab" aria-controls="tab-feedback" aria-selected="false">
+                <i class="fa-solid fa-paper-plane me-2"></i>Send Feedback
+            </button>
+        </li>
+        <li class="nav-item flex-fill" role="presentation">
+            <button class="nav-link w-100" id="tab-contact-btn" data-bs-toggle="pill" data-bs-target="#tab-contact" type="button" role="tab" aria-controls="tab-contact" aria-selected="false">
+                <i class="fa-solid fa-headset me-2"></i>Contact Support
+            </button>
+        </li>
+    </ul>
+
+    <!-- ===== Tab Contents ===== -->
+    <div class="tab-content" id="helpTabsContent">
+
+        <!-- ========================================================= -->
+        <!-- TAB 1: FAQ ACCORDION                                     -->
+        <!-- ========================================================= -->
+        <div class="tab-pane fade show active" id="tab-faq" role="tabpanel" aria-labelledby="tab-faq-btn">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body p-4">
+
+                    <!-- Search Bar & Controls -->
+                    <div class="row g-3 align-items-center mb-3">
+                        <div class="col-lg-8">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-search"></i></span>
+                                <input type="text" id="faqSearchInput" class="form-control border-start-0 ps-0" placeholder='Search — e.g. "DPR", "delayed", "approver", "cost"'>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 text-lg-end">
+                            <button id="faqToggleAllBtn" class="btn btn-outline-secondary btn-sm fw-semibold">
+                                <i class="fa-solid fa-arrows-up-down me-1"></i>Expand All
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Category Chips -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted text-uppercase mb-2 d-block">Filter by Topic:</label>
+                        <div class="chip-container" id="faqCategoryChips">
+                            <span class="faq-chip active" data-cat="ALL">ALL</span>
+                            <span class="faq-chip" data-cat="GETTING STARTED">GETTING STARTED</span>
+                            <span class="faq-chip" data-cat="MONITORING">MONITORING</span>
+                            <span class="faq-chip" data-cat="REPORTS">REPORTS</span>
+                            <span class="faq-chip" data-cat="ACCESS">ACCESS</span>
+                            <span class="faq-chip" data-cat="DATA">DATA</span>
+                        </div>
+                    </div>
+
+                    <hr class="my-3 text-muted opacity-25">
+
+                    <!-- Accordion List -->
+                    <div class="faq-accordion accordion" id="faqAccordion">
+
+                        <!-- FAQ Item 1 -->
+                        <div class="accordion-item" data-category="GETTING STARTED" data-keywords="search filter find project dpr location ministry state">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqItem1">
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary faq-badge">Getting Started</span>
+                                    How do I search and filter infrastructure projects across ministries?
+                                </button>
+                            </h2>
+                            <div id="faqItem1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>You can use the <strong>Global Search Bar</strong> in the main header to search by project name or Project ID (e.g. <code>PROJ-001</code>). For granular filtering:</p>
+                                    <ul>
+                                        <li>Navigate to the <a href="{% url 'project_list' %}" class="fw-semibold text-decoration-none">Projects Registry</a> page.</li>
+                                        <li>Use the top filter bar to filter by <strong>Ministry</strong>, <strong>State</strong>, or <strong>Current Status</strong> (Ongoing, Delayed, Completed, Not Started).</li>
+                                        <li>Sort by approved cost, expenditure, or physical progress percentage.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FAQ Item 2 -->
+                        <div class="accordion-item" data-category="MONITORING" data-keywords="risk high medium low calculate formula gap delay cost overrun">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqItem2">
+                                    <span class="badge bg-info bg-opacity-10 text-info border border-info faq-badge">Monitoring</span>
+                                    How is a project's risk level (High, Medium, Low) calculated?
+                                </button>
+                            </h2>
+                            <div id="faqItem2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>The IIPMP automated risk engine evaluates projects using standard MoSPI parameters:</p>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered mt-2 mb-2 align-middle">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Risk Tier</th>
+                                                    <th>Criteria Breakdown</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><span class="badge bg-success">Low Risk</span></td>
+                                                    <td>On-schedule execution. Physical progress matches baseline expectation, and revised cost ≤ approved cost.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><span class="badge bg-warning text-dark">Medium Risk</span></td>
+                                                    <td>Timeline delay between 1–6 months or financial cost overrun between 1%–10%.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><span class="badge bg-danger">High Risk</span></td>
+                                                    <td>Timeline delay exceeding 6 months, severe physical progress gap (>25%), or cost overrun >10%.</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p class="mb-0">Risk levels update automatically whenever new expenditure or physical progress data is logged.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FAQ Item 3 -->
+                        <div class="accordion-item" data-category="MONITORING" data-keywords="status ongoing delayed completed not started hold approver">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqItem3">
+                                    <span class="badge bg-info bg-opacity-10 text-info border border-info faq-badge">Monitoring</span>
+                                    What do the different project status indicators mean?
+                                </button>
+                            </h2>
+                            <div id="faqItem3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <ul class="mb-0">
+                                        <li><strong class="text-secondary">Not Started / On Hold:</strong> Project approved or sanctioned, but ground excavation or physical work has not commenced.</li>
+                                        <li><strong class="text-primary">Ongoing:</strong> Active construction or commissioning underway within scheduled parameters.</li>
+                                        <li><strong class="text-danger">Delayed:</strong> Expected completion date has elapsed without 100% physical progress.</li>
+                                        <li><strong class="text-success">Completed:</strong> Physical assets commissioned and verified (100% progress).</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FAQ Item 4 -->
+                        <div class="accordion-item" data-category="REPORTS" data-keywords="export csv report download print analytics summary pdf">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqItem4">
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success faq-badge">Reports</span>
+                                    How do I export dashboard summaries and project reports?
+                                </button>
+                            </h2>
+                            <div id="faqItem4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>IIPMP provides built-in report export tools:</p>
+                                    <ul>
+                                        <li><strong>Dashboard CSV Export:</strong> Click the <span class="badge bg-secondary"><i class="fa-solid fa-download"></i> Export Report</span> button on the <a href="{% url 'dashboard' %}" class="fw-semibold text-decoration-none">Dashboard</a> page to download a full CSV breakdown.</li>
+                                        <li><strong>Review Reports:</strong> Navigate to the <a href="{% url 'review' %}" class="fw-semibold text-decoration-none">Review Page</a> for focused lists of delayed or high-cost overrun projects.</li>
+                                        <li><strong>Print-to-PDF:</strong> Use standard browser print (<code>Ctrl+P</code> / <code>Cmd+P</code>) on any page — pages are optimized with clean print stylesheets.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FAQ Item 5 -->
+                        <div class="accordion-item" data-category="DATA" data-keywords="csv bulk import upload format headers date row template">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqItem5">
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning faq-badge">Data</span>
+                                    What is the required format for CSV bulk data import?
+                                </button>
+                            </h2>
+                            <div id="faqItem5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>Nodal officers and system admins can perform bulk uploads via the <strong>Database Management</strong> interface. Ensure your CSV file includes the following mandatory headers:</p>
+                                    <pre class="bg-light p-3 rounded text-dark small mb-2">project_id,project_name,ministry,department,state,implementing_agency,approved_cost,revised_cost,expenditure,start_date,expected_completion,physical_progress,financial_progress,status,description</pre>
+                                    <p class="small text-muted mb-0"><i class="fa-solid fa-circle-info me-1 text-primary"></i> Dates must be formatted as <code>YYYY-MM-DD</code>. Cost values should be in numerical ₹ Crores without currency symbols or commas.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FAQ Item 6 -->
+                        <div class="accordion-item" data-category="MONITORING" data-keywords="alerts push notifications automated risk breach email">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqItem6">
+                                    <span class="badge bg-info bg-opacity-10 text-info border border-info faq-badge">Monitoring</span>
+                                    How are automated system alerts generated?
+                                </button>
+                            </h2>
+                            <div id="faqItem6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>The IIPMP automated trigger engine monitors data entries in real-time. System alerts are generated when:</p>
+                                    <ul class="mb-0">
+                                        <li>Revised cost exceeds approved budget.</li>
+                                        <li>Physical progress lags >20% behind expected target schedule.</li>
+                                        <li>Expected completion date passes while project is incomplete.</li>
+                                        <li>Milestone target dates are missed by implementing agencies.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FAQ Item 7 -->
+                        <div class="accordion-item" data-category="ACCESS" data-keywords="milestone admin edit update agency target date order">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqItem7">
+                                    <span class="badge bg-purple bg-opacity-10 text-purple border border-purple faq-badge" style="color:#8b5cf6;">Access</span>
+                                    How do nodal officers update project milestone status?
+                                </button>
+                            </h2>
+                            <div id="faqItem7" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>Logged-in administrators can manage milestones directly:</p>
+                                    <ol class="mb-0">
+                                        <li>Open the specific project detail page (e.g. from the Projects list).</li>
+                                        <li>Scroll down to the <strong>Milestones & Progress Timeline</strong> section.</li>
+                                        <li>Click <strong>+ Add Milestone</strong> or the <code>Edit</code> button next to an existing milestone.</li>
+                                        <li>Update completion dates and set status to <code>Completed</code>, <code>In Progress</code>, or <code>Pending</code>.</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FAQ Item 8 -->
+                        <div class="accordion-item" data-category="ACCESS" data-keywords="permissions login credentials nodal officer request role privileges">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqItem8">
+                                    <span class="badge bg-purple bg-opacity-10 text-purple border border-purple faq-badge" style="color:#8b5cf6;">Access</span>
+                                    Who can request administrative login credentials or API access?
+                                </button>
+                            </h2>
+                            <div id="faqItem8" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p class="mb-0">Administrative credentials are reserved for designated Nodal Officers appointed by participating Ministries, Departments, and Implementing Agencies (e.g., NHAI, Indian Railways, CPWD). Submit an official access request via the <strong>Send Feedback</strong> tab or contact the <strong>MoSPI Data Informatics Division</strong>.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- No Search Results Message -->
+                    <div id="noFaqResults" class="text-center py-4 d-none">
+                        <i class="fa-solid fa-magnifying-glass text-muted fa-3x mb-3"></i>
+                        <h6 class="fw-bold">No matching questions found</h6>
+                        <p class="text-muted small">Try searching with different keywords, or submit your query via the <strong>Send Feedback</strong> tab.</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- TAB 2: TRACK A TICKET                                    -->
+        <!-- ========================================================= -->
+        <div class="tab-pane fade" id="tab-ticket" role="tabpanel" aria-labelledby="tab-ticket-btn">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold text-navy mb-1"><i class="fa-solid fa-magnifying-glass me-2 text-warning"></i>Track Support Ticket Status</h5>
+                    <p class="text-muted small mb-4">Enter your support ticket reference ID to inspect real-time progress and resolution notes.</p>
+
+                    <!-- Search Input Box -->
+                    <div class="ticket-search-box mb-4">
+                        <form id="ticketLookupForm" onsubmit="handleTicketLookup(event)">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-md-9">
+                                    <div class="input-group input-group-lg">
+                                        <span class="input-group-text bg-light text-muted border-end-0"><i class="fa-solid fa-ticket"></i></span>
+                                        <input type="text" id="ticketIdInput" class="form-control border-start-0 uppercase font-monospace" placeholder="e.g. HD-1042" required autocomplete="off">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold text-navy shadow-sm">
+                                        <i class="fa-solid fa-magnifying-glass me-2"></i>Look Up
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                        <p class="small text-muted mt-3 mb-0">
+                            <i class="fa-solid fa-circle-info text-primary me-1"></i>
+                            <strong>Preview build</strong> — try <code>HD-1042</code>, <code>HD-1088</code>, or <code>HD-1103</code> for sample results.
+                        </p>
+                    </div>
+
+                    <!-- Ticket Status Result Card (Dynamic Output) -->
+                    <div id="ticketResultArea">
+                        <!-- Default Initial State -->
+                        <div class="text-center py-5 text-muted bg-light rounded border border-dashed">
+                            <i class="fa-solid fa-ticket-simple text-secondary opacity-50 fa-3x mb-3"></i>
+                            <h6 class="fw-bold">No Ticket Selected</h6>
+                            <p class="small mb-0">Enter a valid Ticket Reference ID above (e.g. <code>HD-1042</code>) to view detailed progress.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- TAB 3: SEND FEEDBACK                                     -->
+        <!-- ========================================================= -->
+        <div class="tab-pane fade" id="tab-feedback" role="tabpanel" aria-labelledby="tab-feedback-btn">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold text-navy mb-1"><i class="fa-solid fa-paper-plane me-2 text-warning"></i>Submit Feedback or Report an Issue</h5>
+                    <p class="text-muted small mb-4">Have suggestions for IIPMP or found a data discrepancy? Send your feedback directly to the portal engineering team.</p>
+
+                    <!-- Alert Container for Form Submission -->
+                    <div id="feedbackAlertArea"></div>
+
+                    <!-- Feedback Form -->
+                    <form id="feedbackForm" onsubmit="handleFeedbackSubmit(event)" class="feedback-card">
+                        <div class="row g-3">
+                            <!-- Column 1 -->
+                            <div class="col-md-6">
+                                <label for="fbName" class="form-label fw-semibold small">Your Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="fbName" placeholder="e.g. Rajesh Kumar" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="fbEmail" class="form-label fw-semibold small">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="fbEmail" placeholder="e.g. r.kumar@nic.in" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="fbType" class="form-label fw-semibold small">Feedback Type <span class="text-danger">*</span></label>
+                                <select class="form-select" id="fbType" required>
+                                    <option value="" selected disabled>Select feedback category...</option>
+                                    <option value="Bug Report">Bug Report / Technical Issue</option>
+                                    <option value="Feature Request">Feature Request / Enhancement</option>
+                                    <option value="Data Discrepancy">Data Discrepancy / Project Cost Correction</option>
+                                    <option value="Usability / UI">Usability / UI Improvement</option>
+                                    <option value="General Inquiry">General Inquiry / Access Request</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="fbProject" class="form-label fw-semibold small">Related Project <span class="text-muted">(Optional)</span></label>
+                                <select class="form-select" id="fbProject">
+                                    <option value="">General Platform (Not project specific)</option>
+                                    {% if projects %}
+                                        {% for p in projects %}
+                                            <option value="{{ p.name }}">{{ p.project_id }} — {{ p.name }}</option>
+                                        {% endfor %}
+                                    {% else %}
+                                        <option value="PROJ-001 — Delhi-Mumbai Expressway">PROJ-001 — Delhi-Mumbai Expressway</option>
+                                        <option value="PROJ-002 — Bullet Train Corridor">PROJ-002 — Bullet Train Corridor</option>
+                                        <option value="PROJ-003 — Chennai Metro Rail Phase II">PROJ-003 — Chennai Metro Rail Phase II</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="fbPage" class="form-label fw-semibold small">Page You Were On <span class="text-muted">(Optional)</span></label>
+                                <select class="form-select" id="fbPage">
+                                    <option value="Dashboard">Dashboard</option>
+                                    <option value="Project Registry">Project Registry</option>
+                                    <option value="Analytics">Analytics Page</option>
+                                    <option value="Review & Reports">Review & Reports</option>
+                                    <option value="Alerts Feed">Alerts Feed</option>
+                                    <option value="Help & Feedback" selected>Help & Feedback</option>
+                                    <option value="Database Management">Database Management</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="fbScreenshot" class="form-label fw-semibold small">Attach Screenshot / Document <span class="text-muted">(Optional)</span></label>
+                                <input type="file" class="form-control" id="fbScreenshot" accept="image/*,.pdf,.doc,.docx">
+                            </div>
+
+                            <!-- Message Textarea -->
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label for="fbMessage" class="form-label fw-semibold small mb-0">Message Details <span class="text-danger">*</span></label>
+                                    <span class="char-counter"><span id="fbCharCount">0</span> / 500 characters</span>
+                                </div>
+                                <textarea class="form-control" id="fbMessage" rows="5" maxlength="500" placeholder="Describe your inquiry, issue, or feedback in detail..." required oninput="updateCharCount(this)"></textarea>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="col-12 d-flex gap-2 pt-2">
+                                <button type="submit" class="btn btn-warning fw-bold text-navy px-4">
+                                    <i class="fa-solid fa-paper-plane me-2"></i>Send Feedback
+                                </button>
+                                <button type="reset" class="btn btn-outline-secondary px-3" onclick="resetCharCount()">
+                                    <i class="fa-solid fa-rotate-left me-2"></i>Clear
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- TAB 4: CONTACT SUPPORT                                    -->
+        <!-- ========================================================= -->
+        <div class="tab-pane fade" id="tab-contact" role="tabpanel" aria-labelledby="tab-contact-btn">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold text-navy mb-1"><i class="fa-solid fa-headset me-2 text-warning"></i>Other Ways to Reach Us</h5>
+                    <p class="text-muted small mb-4">Need immediate technical support or official nodal coordination? Reach out via official government channels.</p>
+
+                    <!-- 3 Contact Cards -->
+                    <div class="row g-4 mb-4">
+                        <!-- Email -->
+                        <div class="col-md-4">
+                            <div class="contact-card">
+                                <div class="contact-icon bg-primary bg-opacity-10 text-primary">
+                                    <i class="fa-solid fa-envelope"></i>
+                                </div>
+                                <h6 class="fw-bold mb-1">Email Support</h6>
+                                <p class="text-muted small mb-3">For technical queries and bug reports</p>
+                                <a href="mailto:helpdesk@iipmp.gov.in" class="btn btn-sm btn-outline-primary fw-bold w-100">
+                                    helpdesk@iipmp.gov.in
+                                </a>
+                            </div>
+                        </div>
+                        <!-- Helpline -->
+                        <div class="col-md-4">
+                            <div class="contact-card">
+                                <div class="contact-icon bg-success bg-opacity-10 text-success">
+                                    <i class="fa-solid fa-phone-volume"></i>
+                                </div>
+                                <h6 class="fw-bold mb-1">Toll-Free Helpline</h6>
+                                <p class="text-muted small mb-3">Nodal Helpdesk (Toll-free)</p>
+                                <a href="tel:1800112233" class="btn btn-sm btn-outline-success fw-bold w-100">
+                                    <i class="fa-solid fa-phone me-1"></i> 1800-11-2233
+                                </a>
+                            </div>
+                        </div>
+                        <!-- Support Hours -->
+                        <div class="col-md-4">
+                            <div class="contact-card">
+                                <div class="contact-icon bg-warning bg-opacity-10 text-warning">
+                                    <i class="fa-solid fa-clock"></i>
+                                </div>
+                                <h6 class="fw-bold mb-1">Support Hours</h6>
+                                <p class="text-muted small mb-3">Official Business Hours</p>
+                                <span class="badge bg-light text-dark border p-2 w-100 font-monospace small">
+                                    Mon–Fri, 9:30 AM–6:00 PM IST
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nodal Coordination Box -->
+                    <div class="p-4 bg-light rounded-3 border border-secondary border-opacity-25">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="text-navy fs-3"><i class="fa-solid fa-building-columns"></i></div>
+                            <div>
+                                <h6 class="fw-bold text-navy mb-1">Ministry Nodal Coordination Desk</h6>
+                                <p class="small text-muted mb-2">
+                                    Data Informatics & Innovation Division (DID)<br>
+                                    Ministry of Statistics and Programme Implementation (MoSPI), Government of India<br>
+                                    Khurshid Lal Bhawan, Janpath, New Delhi – 110001
+                                </p>
+                                <div class="d-flex gap-3 flex-wrap small font-weight-bold">
+                                    <span><i class="fa-solid fa-shield-halved text-primary me-1"></i> Government Portal Verification</span>
+                                    <span><i class="fa-solid fa-server text-success me-1"></i> NIC Server Infrastructure</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ===== Sub-Footer Bar ===== -->
+<div class="preview-footer-bar">
+    <div class="container">
+        <span><i class="fa-solid fa-shield-cat me-1 text-warning"></i> IIPMP — Integrated Infrastructure Project Monitoring Portal (Preview)</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Sample Mock Ticket Database for Ticket Tracker
+    const MOCK_TICKETS = {
+        'HD-1042': {
+            id: 'HD-1042',
+            subject: 'CSV Bulk Import Timeout on 200+ Rows',
+            category: 'Data Systems',
+            status: 'In Progress',
+            badgeClass: 'bg-warning text-dark',
+            created: '2 hours ago (Today, 09:30 AM)',
+            updated: '15 mins ago',
+            assigned: 'NIC Data Operations Cell',
+            step: 3, // 1: Submitted, 2: Under Review, 3: Resolving, 4: Closed
+            details: 'Nodal officer reported execution timeout when uploading 250 rows in single CSV batch.',
+            notes: 'Database team optimized transaction batch size. Patch queued for deployment.'
+        },
+        'HD-1088': {
+            id: 'HD-1088',
+            subject: 'PDF Export Layout Alignment Issue in Firefox',
+            category: 'UI & Reports',
+            status: 'Resolved',
+            badgeClass: 'bg-success text-white',
+            created: '1 day ago',
+            updated: '4 hours ago',
+            assigned: 'Frontend Engineering Unit',
+            step: 4,
+            details: 'Cost analysis chart labels clipped when generating print layout on Firefox v125.',
+            notes: 'Resolved in hotfix v2.4. Print CSS stylesheet adjusted for standard A4 landscape.'
+        },
+        'HD-1103': {
+            id: 'HD-1103',
+            subject: 'Access Request for Ministry of Power Analyst Role',
+            category: 'Access Control',
+            status: 'Open / Pending',
+            badgeClass: 'bg-primary text-white',
+            created: '30 mins ago',
+            updated: '30 mins ago',
+            assigned: 'MoSPI Access Control Desk',
+            step: 1,
+            details: 'Submitted nodal authorisation letter for 2 senior analysts in Power Grid project.',
+            notes: 'Awaiting digital signature verification from Nodal Officer.'
+        }
+    };
+
+    // Initialize Page Controls
+    document.addEventListener('DOMContentLoaded', function() {
+        // FAQ Search listener
+        const faqSearchInput = document.getElementById('faqSearchInput');
+        if (faqSearchInput) {
+            faqSearchInput.addEventListener('keyup', filterFaqs);
+        }
+
+        // FAQ Chips listener
+        const chips = document.querySelectorAll('#faqCategoryChips .faq-chip');
+        chips.forEach(chip => {
+            chip.addEventListener('click', function() {
+                chips.forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                filterFaqs();
+            });
+        });
+
+        // FAQ Toggle All listener
+        const toggleBtn = document.getElementById('faqToggleAllBtn');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', toggleAllFaqs);
+        }
+    });
+
+    // Select FAQ category from top category cards
+    function selectFaqCategory(categoryName) {
+        // Switch to FAQ tab
+        const faqTabBtn = document.getElementById('tab-faq-btn');
+        const tab = new bootstrap.Tab(faqTabBtn);
+        tab.show();
+
+        // Highlight chip
+        const chips = document.querySelectorAll('#faqCategoryChips .faq-chip');
+        chips.forEach(chip => {
+            if (chip.getAttribute('data-cat') === categoryName) {
+                chip.classList.add('active');
+            } else {
+                chip.classList.remove('active');
+            }
+        });
+
+        // Filter FAQs & Scroll
+        filterFaqs();
+        document.getElementById('helpTabs').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Dynamic FAQ Filtering (Search + Category)
+    function filterFaqs() {
+        const query = document.getElementById('faqSearchInput').value.toLowerCase().trim();
+        const activeChip = document.querySelector('#faqCategoryChips .faq-chip.active');
+        const selectedCat = activeChip ? activeChip.getAttribute('data-cat') : 'ALL';
+
+        const items = document.querySelectorAll('#faqAccordion .accordion-item');
+        let visibleCount = 0;
+
+        items.forEach(item => {
+            const itemCat = item.getAttribute('data-category');
+            const keywords = item.getAttribute('data-keywords').toLowerCase();
+            const text = item.textContent.toLowerCase();
+
+            const matchesCat = (selectedCat === 'ALL' || itemCat === selectedCat);
+            const matchesQuery = (query === '' || text.includes(query) || keywords.includes(query));
+
+            if (matchesCat && matchesQuery) {
+                item.classList.remove('d-none');
+                visibleCount++;
+            } else {
+                item.classList.add('d-none');
+            }
+        });
+
+        const noResults = document.getElementById('noFaqResults');
+        if (visibleCount === 0) {
+            noResults.classList.remove('d-none');
+        } else {
+            noResults.classList.add('d-none');
+        }
+    }
+
+    // Toggle Expand All / Collapse All FAQs
+    let allExpanded = false;
+    function toggleAllFaqs() {
+        const items = document.querySelectorAll('#faqAccordion .accordion-collapse');
+        const btn = document.getElementById('faqToggleAllBtn');
+
+        allExpanded = !allExpanded;
+        items.forEach(el => {
+            const collapse = bootstrap.Collapse.getOrCreateInstance(el, { toggle: false });
+            if (allExpanded) {
+                collapse.show();
+            } else {
+                collapse.hide();
+            }
+        });
+
+        if (allExpanded) {
+            btn.innerHTML = '<i class="fa-solid fa-compress me-1"></i>Collapse All';
+        } else {
+            btn.innerHTML = '<i class="fa-solid fa-arrows-up-down me-1"></i>Expand All';
+        }
+    }
+
+    // Handle Ticket Lookup
+    function handleTicketLookup(event) {
+        event.preventDefault();
+        const idInput = document.getElementById('ticketIdInput').value.trim().toUpperCase();
+        const resultArea = document.getElementById('ticketResultArea');
+
+        if (!idInput) return;
+
+        const ticket = MOCK_TICKETS[idInput];
+
+        if (ticket) {
+            resultArea.innerHTML = `
+            <div class="ticket-status-card">
+                <div class="ticket-header">
+                    <div>
+                        <span class="badge bg-light text-dark font-monospace me-2">${ticket.id}</span>
+                        <span class="fw-bold">${escapeHtml(ticket.subject)}</span>
+                    </div>
+                    <div>
+                        <span class="badge ${ticket.badgeClass} fs-6 px-3 py-2">${ticket.status}</span>
+                    </div>
+                </div>
+
+                <div class="p-4">
+                    <!-- Steps Timeline -->
+                    <div class="timeline-steps">
+                        <div class="timeline-step ${ticket.step >= 1 ? (ticket.step === 1 ? 'active' : 'completed') : ''}">
+                            <div class="step-icon-circle"><i class="fa-solid fa-paper-plane"></i></div>
+                            <div class="step-title">1. Submitted</div>
+                        </div>
+                        <div class="timeline-step ${ticket.step >= 2 ? (ticket.step === 2 ? 'active' : 'completed') : ''}">
+                            <div class="step-icon-circle"><i class="fa-solid fa-user-check"></i></div>
+                            <div class="step-title">2. Under Review</div>
+                        </div>
+                        <div class="timeline-step ${ticket.step >= 3 ? (ticket.step === 3 ? 'active' : 'completed') : ''}">
+                            <div class="step-icon-circle"><i class="fa-solid fa-gears"></i></div>
+                            <div class="step-title">3. Resolving</div>
+                        </div>
+                        <div class="timeline-step ${ticket.step >= 4 ? 'completed active' : ''}">
+                            <div class="step-icon-circle"><i class="fa-solid fa-check-double"></i></div>
+                            <div class="step-title">4. Closed</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 bg-light p-3 rounded border my-3">
+                        <div class="col-sm-6 col-md-3">
+                            <span class="text-muted small d-block">Category</span>
+                            <span class="fw-semibold text-dark">${escapeHtml(ticket.category)}</span>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <span class="text-muted small d-block">Assigned Unit</span>
+                            <span class="fw-semibold text-dark">${escapeHtml(ticket.assigned)}</span>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <span class="text-muted small d-block">Created</span>
+                            <span class="fw-semibold text-dark">${escapeHtml(ticket.created)}</span>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <span class="text-muted small d-block">Last Updated</span>
+                            <span class="fw-semibold text-dark">${escapeHtml(ticket.updated)}</span>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-navy mt-3">Ticket Description</h6>
+                    <p class="small text-muted">${escapeHtml(ticket.details)}</p>
+
+                    <div class="p-3 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded">
+                        <h6 class="fw-bold text-primary small mb-1"><i class="fa-solid fa-comment-dots me-1"></i> Latest Support Note:</h6>
+                        <p class="small text-dark mb-0">${escapeHtml(ticket.notes)}</p>
+                    </div>
+                </div>
+            </div>`;
+        } else {
+            resultArea.innerHTML = `
+            <div class="alert alert-warning border-warning shadow-sm rounded-3 p-4 text-center">
+                <i class="fa-solid fa-triangle-exclamation text-warning fa-3x mb-3"></i>
+                <h5 class="fw-bold text-dark">No Ticket Found</h5>
+                <p class="text-muted small mb-3">We couldn't find any ticket matching reference code <code>${escapeHtml(idInput)}</code>.</p>
+                <p class="small mb-0">Please check the ID for typos, or try one of the sample build codes: <code>HD-1042</code>, <code>HD-1088</code>, or <code>HD-1103</code>.</p>
+            </div>`;
+        }
+    }
+
+    // Feedback Character Counter
+    function updateCharCount(textarea) {
+        const countSpan = document.getElementById('fbCharCount');
+        if (countSpan) {
+            countSpan.textContent = textarea.value.length;
+        }
+    }
+
+    function resetCharCount() {
+        const countSpan = document.getElementById('fbCharCount');
+        if (countSpan) countSpan.textContent = '0';
+        document.getElementById('feedbackAlertArea').innerHTML = '';
+    }
+
+    // Handle Feedback Submit (Client-Side Simulation)
+    function handleFeedbackSubmit(event) {
+        event.preventDefault();
+        const name = document.getElementById('fbName').value.trim();
+        const email = document.getElementById('fbEmail').value.trim();
+        const type = document.getElementById('fbType').value;
+        const message = document.getElementById('fbMessage').value.trim();
+
+        if (!name || !email || !type || !message) return;
+
+        // Generate Mock Reference Number e.g. FB-8492
+        const refId = 'FB-' + Math.floor(1000 + Math.random() * 9000);
+        const timestamp = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+
+        const alertArea = document.getElementById('feedbackAlertArea');
+        alertArea.innerHTML = `
+        <div class="alert alert-success border-success shadow-sm rounded-3 p-4 mb-4">
+            <div class="d-flex align-items-start gap-3">
+                <div class="text-success fs-2"><i class="fa-solid fa-circle-check"></i></div>
+                <div class="flex-grow-1">
+                    <h5 class="fw-bold text-dark mb-1">Feedback Submitted Successfully!</h5>
+                    <p class="small text-muted mb-2">Thank you, <strong>${escapeHtml(name)}</strong>. Your input has been logged into the IIPMP Support Portal.</p>
+                    <div class="p-2 bg-white rounded border d-inline-block font-monospace small mb-2">
+                        Reference Number: <strong class="text-navy">${refId}</strong> | Timestamp: ${timestamp}
+                    </div>
+                    <p class="small text-muted mb-0"><i class="fa-solid fa-envelope me-1"></i> A confirmation copy has been queued for <code>${escapeHtml(email)}</code>.</p>
+                </div>
+            </div>
+        </div>`;
+
+        // Reset form
+        document.getElementById('feedbackForm').reset();
+        resetCharCount();
+
+        // Scroll to success banner
+        alertArea.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Utility escape function
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>"']/g, function(m) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[m];
+        });
+    }
+</script>
+{% endblock %}
