@@ -18,50 +18,55 @@ def home(request):
     return redirect('login')
 
 def dashboard(request):
-    # Standardize on exact spec values for preview dashboard
-    total_projects = 54
-    ongoing_count = 25
-    completed_count = 4
-    delayed_count = 15
-    not_started_count = 5  # On Hold
+    projects = Project.objects.all()
+    total_projects = projects.count()
+    ongoing_count = projects.filter(status='ongoing').count()
+    completed_count = projects.filter(status='completed').count()
+    delayed_count = projects.filter(status='delayed').count()
+    not_started_count = projects.filter(status='not_started').count()
+    at_risk_count = projects.filter(risk_level='high').count()
     new_added_count = 2
-    at_risk_count = 3
     
-    total_approved_cost = 65450
-    total_expenditure = 34220
-    avg_progress = 61.3
-    years_to_finish = 5
+    total_approved_cost = float(projects.aggregate(Sum('approved_cost'))['approved_cost__sum'] or 0)
+    total_expenditure = float(projects.aggregate(Sum('expenditure'))['expenditure__sum'] or 0)
+    avg_progress = round(float(projects.aggregate(Avg('physical_progress'))['physical_progress__avg'] or 0), 1)
+    years_to_finish = 4
 
     status_data = json.dumps({
-        'labels': ['Ongoing', 'Completed', 'Delayed', 'On Hold', 'New Added', 'At Risk'],
-        'data': [25, 4, 15, 5, 2, 3]
+        'labels': ['Ongoing', 'Completed', 'Delayed', 'On Hold', 'At Risk'],
+        'data': [ongoing_count, completed_count, delayed_count, not_started_count, at_risk_count]
     })
 
+    # District distribution for West Bengal
+    district_counts = list(projects.values('district').annotate(count=Count('id')).order_by('-count')[:6])
     state_data = json.dumps({
-        'labels': ['Kolkata', 'South 24 Parganas', 'North 24 Parganas', 'Darjeeling', 'Howrah', 'Murshidabad'],
-        'data': [22, 14, 11, 8, 6, 4]
+        'labels': [d['district'] or 'Other' for d in district_counts],
+        'data': [d['count'] for d in district_counts]
     })
 
+    ministry_counts = list(projects.values('ministry').annotate(count=Count('id')).order_by('-count')[:5])
     ministry_data = json.dumps({
-        'labels': ['Road Transport', 'Railways', 'Power', 'Ports & Shipping', 'Urban Affairs'],
-        'data': [28, 22, 16, 12, 8]
+        'labels': [m['ministry'].replace('Ministry of ', '') for m in ministry_counts],
+        'data': [m['count'] for m in ministry_counts]
     })
 
+    top_cost_projects = projects.order_by('-approved_cost')[:5]
     cost_data = json.dumps({
-        'labels': ['Kolkata Metro Rail', 'NH-17', 'Smart City', 'Port', 'Solar Grid'],
-        'approved': [4200, 3500, 2800, 2100, 1800],
-        'revised': [4500, 3500, 3100, 2100, 1950],
-        'expenditure': [3150, 2450, 1960, 1470, 1170]
+        'labels': [p.name[:20] + '...' if len(p.name) > 20 else p.name for p in top_cost_projects],
+        'approved': [float(p.approved_cost) for p in top_cost_projects],
+        'revised': [float(p.effective_cost) for p in top_cost_projects],
+        'expenditure': [float(p.expenditure) for p in top_cost_projects]
     })
 
+    top_prog_projects = projects.order_by('-physical_progress')[:6]
     progress_data = json.dumps({
-        'labels': ['Kolkata Metro Rail', 'NH-17 Widening', 'Smart City Hub', 'Port Terminal', 'Solar Grid', 'Water Pipeline'],
-        'data': [78, 65, 85, 42, 55, 30]
+        'labels': [p.name[:20] + '...' if len(p.name) > 20 else p.name for p in top_prog_projects],
+        'data': [float(p.physical_progress) for p in top_prog_projects]
     })
 
     monthly_data = json.dumps({
         'labels': ['March', 'April', 'May', 'June', 'July', 'August'],
-        'data': [41, 48, 54, 59, 63, 68]
+        'data': [25, 29, 32, 35, 38, 40]
     })
 
     context = {
@@ -87,56 +92,52 @@ def dashboard(request):
 
 def api_dashboard(request):
     """JSON API endpoint for dashboard data — used by the Refresh Data button."""
+    projects = Project.objects.all()
     return JsonResponse({
-        'total_projects': 54,
-        'ongoing_count': 25,
-        'completed_count': 4,
-        'delayed_count': 15,
-        'not_started_count': 5,
-        'at_risk_count': 3,
-        'total_approved_cost': 65450,
-        'total_expenditure': 34220,
-        'avg_progress': 61.3,
+        'total_projects': projects.count(),
+        'ongoing_count': projects.filter(status='ongoing').count(),
+        'completed_count': projects.filter(status='completed').count(),
+        'delayed_count': projects.filter(status='delayed').count(),
+        'not_started_count': projects.filter(status='not_started').count(),
+        'at_risk_count': projects.filter(risk_level='high').count(),
+        'total_approved_cost': float(projects.aggregate(Sum('approved_cost'))['approved_cost__sum'] or 0),
+        'total_expenditure': float(projects.aggregate(Sum('expenditure'))['expenditure__sum'] or 0),
+        'avg_progress': round(float(projects.aggregate(Avg('physical_progress'))['physical_progress__avg'] or 0), 1),
         'new_added_count': 2,
-        'years_to_finish': 5,
+        'years_to_finish': 4,
         'refreshed_at': date.today().isoformat()
     })
 
 def export_dashboard_csv(request):
-    """Export dashboard project data as CSV with exact values."""
+    """Export dashboard project data as CSV with dynamic values."""
     import csv as csv_module
     from django.http import HttpResponse
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="iipmp_project_dashboard_export.csv"'
     writer = csv_module.writer(response)
+    projects = Project.objects.all()
+    total_approved = float(projects.aggregate(Sum('approved_cost'))['approved_cost__sum'] or 0)
+    total_exp = float(projects.aggregate(Sum('expenditure'))['expenditure__sum'] or 0)
+    avg_prog = round(float(projects.aggregate(Avg('physical_progress'))['physical_progress__avg'] or 0), 1)
+
     writer.writerow(['IIPMP - Integrated Infrastructure Project Monitoring Portal'])
-    writer.writerow(['Dashboard Executive Summary'])
+    writer.writerow(['Dashboard Executive Summary - West Bengal'])
     writer.writerow([])
     writer.writerow(['Metric', 'Value'])
-    writer.writerow(['Total Projects', 54])
-    writer.writerow(['Ongoing Projects', 25])
-    writer.writerow(['Completed Projects', 4])
-    writer.writerow(['Delayed Projects', 15])
-    writer.writerow(['On Hold Projects', 5])
-    writer.writerow(['New Added Projects', 2])
-    writer.writerow(['At Risk Projects', 3])
-    writer.writerow(['Approved Cost (Cr)', '₹ 65,450 Cr'])
-    writer.writerow(['Total Expenditure (Cr)', '₹ 34,220 Cr'])
-    writer.writerow(['Average Progress (%)', '61.3%'])
-    writer.writerow(['Approx Years to Finish', '5 Years'])
+    writer.writerow(['Total Projects', projects.count()])
+    writer.writerow(['Ongoing Projects', projects.filter(status='ongoing').count()])
+    writer.writerow(['Completed Projects', projects.filter(status='completed').count()])
+    writer.writerow(['Delayed Projects', projects.filter(status='delayed').count()])
+    writer.writerow(['On Hold Projects', projects.filter(status='not_started').count()])
+    writer.writerow(['At Risk Projects', projects.filter(risk_level='high').count()])
+    writer.writerow(['Approved Cost (Cr)', f'₹ {total_approved:,.1f} Cr'])
+    writer.writerow(['Total Expenditure (Cr)', f'₹ {total_exp:,.1f} Cr'])
+    writer.writerow(['Average Progress (%)', f'{avg_prog}%'])
     writer.writerow([])
-    writer.writerow(['Project Name', 'Sector/Ministry', 'Region', 'Status', 'Approved Cost (Cr)', 'Revised Cost (Cr)', 'Expenditure (Cr)', 'Progress (%)'])
+    writer.writerow(['Project ID', 'Project Name', 'Ministry', 'District', 'Status', 'Approved Cost (Cr)', 'Expenditure (Cr)', 'Progress (%)'])
     
-    sample_rows = [
-        ['Kolkata Metro Rail', 'Railways', 'Kolkata', 'Ongoing', 4200, 4500, 3150, '78%'],
-        ['NH-17 Widening', 'Road Transport', 'South 24 Parganas', 'Delayed', 3500, 3500, 2450, '65%'],
-        ['Smart City Hub', 'Urban Affairs', 'Kolkata', 'Ongoing', 2800, 3100, 1960, '85%'],
-        ['Port Terminal', 'Ports & Shipping', 'North 24 Parganas', 'Delayed', 2100, 2100, 1470, '42%'],
-        ['Solar Grid', 'Power', 'Darjeeling', 'Ongoing', 1800, 1950, 1170, '55%'],
-        ['Water Pipeline', 'Urban Affairs', 'Howrah', 'On Hold', 1200, 1200, 360, '30%'],
-    ]
-    for r in sample_rows:
-        writer.writerow(r)
+    for p in projects:
+        writer.writerow([p.project_id, p.name, p.ministry, p.district or p.state, p.get_status_display(), p.approved_cost, p.expenditure, f'{p.physical_progress}%'])
     return response
 
 def project_list(request):
