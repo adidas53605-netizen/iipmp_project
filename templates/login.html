@@ -488,7 +488,15 @@
         const alertArea = document.getElementById('authErrorAlert');
         const msgArea = document.getElementById('authErrorMessage');
         if (msgArea) msgArea.textContent = msg;
-        if (alertArea) alertArea.classList.remove('d-none');
+        if (alertArea) {
+            alertArea.classList.remove('d-none');
+            alertArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    function clearError() {
+        const alertArea = document.getElementById('authErrorAlert');
+        if (alertArea) alertArea.classList.add('d-none');
     }
 
     // =========================================================
@@ -496,6 +504,7 @@
     // =========================================================
     function handleLoginSubmit(e) {
         if (e) e.preventDefault();
+        clearError();
         try {
             const phoneInput = document.getElementById('loginPhone');
             const passInput = document.getElementById('loginPassword');
@@ -505,31 +514,36 @@
             const password = passInput ? passInput.value.trim() : '';
             const captcha = captchaInput ? captchaInput.value.trim() : '';
 
-            // 1. Phone validation
-            if (!/^[0-9]{10}$/.test(phone)) {
-                showError('Please enter a valid 10-digit mobile number.');
-                generateCaptcha();
+            // 1. Empty field validation
+            if (!phone || !password) {
+                showError('Please enter both phone number and password.');
                 return false;
             }
 
-            // 2. Captcha validation
+            // 2. Phone format validation
+            if (!/^[0-9]{10}$/.test(phone)) {
+                showError('Please enter a valid 10-digit mobile number.');
+                return false;
+            }
+
+            // 3. Captcha validation
             if (parseInt(captcha, 10) !== currentCaptchaAnswer) {
                 showError('Incorrect captcha answer. Please try again.');
                 generateCaptcha();
                 return false;
             }
 
-            // 3. User Lookup
+            // 4. User Lookup
             const users = getUsersDB();
             const user = users.find(u => String(u.phone).trim() === String(phone).trim());
 
             if (!user) {
-                showError('Phone number not registered. Click "New User? Register" above to create an account.');
+                showError('Invalid phone number or password. Please try again.');
                 generateCaptcha();
                 return false;
             }
 
-            // 4. If user exists but has no password set (Seeded team member first time)
+            // 5. If user exists but has no password set (Seeded team member first time)
             if (user.password === null || user.password === undefined) {
                 if (password && password.length >= 4) {
                     // Automatically save password & log in
@@ -550,14 +564,14 @@
                 }
             }
 
-            // 5. Verify password
+            // 6. Verify password
             if (String(user.password).trim() !== String(password).trim()) {
-                showError('Phone number or password incorrect.');
+                showError('Invalid phone number or password. Please try again.');
                 generateCaptcha();
                 return false;
             }
 
-            // 6. Success -> Log In & Redirect
+            // 7. Success -> Log In & Redirect
             completeLogin(user);
         } catch (err) {
             console.error('[IIPMP Login Error]', err);
@@ -679,9 +693,16 @@
         window.location.href = '{% url "dashboard" %}';
     }
 
-    // Initialize Captcha on page load
+    // Initialize Captcha & input listeners on page load
     document.addEventListener('DOMContentLoaded', function() {
         generateCaptcha();
+        const inputIds = ['loginPhone', 'loginPassword', 'loginCaptcha', 'regName', 'regPhone', 'regPassword', 'regConfirmPassword', 'regCaptcha'];
+        inputIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', clearError);
+            }
+        });
     });
 </script>
 {% endblock %}
