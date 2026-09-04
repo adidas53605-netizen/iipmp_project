@@ -671,7 +671,9 @@
     // Complete Login Sequence & Redirect
     function completeLogin(user) {
         sessionStorage.setItem('iipmp_logged_in', 'true');
-        sessionStorage.setItem('iipmp_user_email', user.name + ' (' + user.phone + ')');
+        sessionStorage.setItem('iipmp_user_name', user.name);
+        sessionStorage.setItem('iipmp_user_phone', user.phone);
+        sessionStorage.setItem('iipmp_user_email', user.name);
         sessionStorage.setItem('iipmp_user_role', 'Nodal Officer');
 
         window.location.href = '{% url "dashboard" %}';

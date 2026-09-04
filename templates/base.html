@@ -44,6 +44,8 @@
         function iipmpLogout(e) {
             if (e) e.preventDefault();
             sessionStorage.removeItem('iipmp_logged_in');
+            sessionStorage.removeItem('iipmp_user_name');
+            sessionStorage.removeItem('iipmp_user_phone');
             sessionStorage.removeItem('iipmp_user_email');
             sessionStorage.removeItem('iipmp_user_role');
             window.location.href = '{% url "login" %}';
@@ -101,7 +103,7 @@
                     </form>
                     
                     <!-- Dynamic User & Logout Controls -->
-                    <div class="dropdown me-2" id="navUserDropdownArea">
+                    <div class="dropdown" id="navUserDropdownArea">
                         <button class="btn btn-outline-primary dropdown-toggle btn-sm fw-bold" type="button" id="userMenuDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fa-solid fa-user-circle me-1"></i> <span id="navUserEmailDisplay">Admin</span>
                         </button>
@@ -111,9 +113,6 @@
                             <li><a class="dropdown-item text-danger fw-bold" href="#" onclick="iipmpLogout(event)"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a></li>
                         </ul>
                     </div>
-                    <button onclick="iipmpLogout(event)" class="btn btn-outline-danger btn-sm fw-bold" id="navLogoutBtn" title="Sign out of portal">
-                        <i class="fa-solid fa-right-from-bracket me-1"></i> Logout
-                    </button>
                 </div>
             </div>
         </div>
@@ -186,13 +185,16 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            var email = sessionStorage.getItem('iipmp_user_email') || 'Admin';
+            var rawUser = sessionStorage.getItem('iipmp_user_name') || sessionStorage.getItem('iipmp_user_email') || 'Admin';
             var role = sessionStorage.getItem('iipmp_user_role') || 'Ministry Official';
             
             var emailDisplay = document.getElementById('navUserEmailDisplay');
             var roleDisplay = document.getElementById('navUserRoleDisplay');
             
-            if (emailDisplay) emailDisplay.textContent = email.split('@')[0];
+            // Strip any phone number pattern e.g. "Aditya Das (6291253315)" -> "Aditya Das"
+            var userName = rawUser.replace(/\s*\(\d+\)$/, '').split('@')[0].trim();
+            
+            if (emailDisplay) emailDisplay.textContent = userName;
             if (roleDisplay) roleDisplay.textContent = 'Role: ' + role;
 
             var path = window.location.pathname;
