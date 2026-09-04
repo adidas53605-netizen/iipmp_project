@@ -42,6 +42,7 @@ class Project(models.Model):
     ministry = models.CharField(max_length=200)
     department = models.CharField(max_length=200, blank=True, default='')
     state = models.CharField(max_length=100)
+    district = models.CharField(max_length=100, blank=True, default='')
     implementing_agency = models.CharField(max_length=300)
     approved_cost = models.DecimalField(max_digits=12, decimal_places=2)
     revised_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)

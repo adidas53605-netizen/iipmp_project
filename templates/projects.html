@@ -23,7 +23,7 @@
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-body bg-light rounded">
             <form method="GET" action="{% url 'project_list' %}" class="row g-3 align-items-end">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small fw-bold text-muted">Search</label>
                     <div class="input-group">
                         <span class="input-group-text bg-white"><i class="fa-solid fa-search"></i></span>
@@ -41,10 +41,19 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-bold text-muted">State</label>
-                    <select name="state" class="form-select">
+                    <select name="state" id="stateSelect" class="form-select">
                         <option value="">All States</option>
                         {% for st in states %}
                         <option value="{{ st }}" {% if request.GET.state == st %}selected{% endif %}>{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">District</label>
+                    <select name="district" id="districtSelect" class="form-select">
+                        <option value="">All Districts</option>
+                        {% for dt in districts %}
+                        <option value="{{ dt }}" {% if request.GET.district == dt %}selected{% endif %}>{{ dt }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -59,15 +68,6 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold text-muted">Risk Level</label>
-                    <select name="risk" class="form-select">
-                        <option value="">All Risks</option>
-                        <option value="low" {% if request.GET.risk == 'low' %}selected{% endif %}>Low</option>
-                        <option value="medium" {% if request.GET.risk == 'medium' %}selected{% endif %}>Medium</option>
-                        <option value="high" {% if request.GET.risk == 'high' %}selected{% endif %}>High</option>
-                    </select>
-                </div>
-                <div class="col-md-1">
                     <button type="submit" class="btn w-100" style="background-color: #003366; color: white;">Filter</button>
                 </div>
             </form>
@@ -111,7 +111,7 @@
                             <div class="small text-muted mt-1">ID: {{ project.project_id }} | {{ project.ministry }}</div>
                         </td>
                         <td>
-                            <div class="fw-medium">{{ project.state }}</div>
+                            <div class="fw-medium">{{ project.state }}{% if project.district %} • <span class="text-secondary">{{ project.district }}</span>{% endif %}</div>
                             <div class="small text-muted">{{ project.implementing_agency }}</div>
                         </td>
                         <td>
@@ -171,4 +171,50 @@
         </div>
     </div>
 </div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const stateSelect = document.getElementById('stateSelect');
+    const districtSelect = document.getElementById('districtSelect');
+    const stateDistrictsMap = {{ state_districts_json|safe }};
+    const currentDistrict = "{{ request.GET.district|default:''|escapejs }}";
+
+    function updateDistrictDropdown() {
+        if (!stateSelect || !districtSelect || !stateDistrictsMap) return;
+        const selectedState = stateSelect.value.trim();
+        const activeDistrict = districtSelect.value.trim() || currentDistrict;
+        
+        districtSelect.innerHTML = '<option value="">All Districts</option>';
+
+        let availableDistricts = [];
+        if (selectedState && stateDistrictsMap[selectedState]) {
+            availableDistricts = stateDistrictsMap[selectedState];
+        } else {
+            let allDt = new Set();
+            Object.values(stateDistrictsMap).forEach(list => list.forEach(d => allDt.add(d)));
+            availableDistricts = Array.from(allDt).sort();
+        }
+
+        availableDistricts.forEach(function(dt) {
+            const option = document.createElement('option');
+            option.value = dt;
+            option.textContent = dt;
+            if (dt === activeDistrict) {
+                option.selected = true;
+            }
+            districtSelect.appendChild(option);
+        });
+    }
+
+    if (stateSelect) {
+        stateSelect.addEventListener('change', function() {
+            if (districtSelect) districtSelect.value = '';
+            updateDistrictDropdown();
+        });
+        updateDistrictDropdown();
+    }
+});
+</script>
+{% endblock %}
 {% endblock %}

@@ -159,6 +159,10 @@ def project_list(request):
     state = request.GET.get('state')
     if state and state.strip():
         projects = projects.filter(state__icontains=state.strip())
+
+    district = request.GET.get('district')
+    if district and district.strip():
+        projects = projects.filter(district__icontains=district.strip())
         
     status = request.GET.get('status')
     if status and status.strip():
@@ -181,14 +185,33 @@ def project_list(request):
         'Ministry of Water Resources'
     ]
 
-    # 2. State Dropdown: Deduplicated unique states from DB
+    # 2. State & District Dropdowns: Deduplicated unique states & districts with mapping
     raw_states = list(Project.objects.values_list('state', flat=True).distinct())
     states = sorted(list(set([st.strip() for st in raw_states if st and st.strip()])))
+
+    raw_pairs = Project.objects.values('state', 'district').distinct()
+    state_districts_map = {}
+    all_districts = set()
+
+    for item in raw_pairs:
+        st = (item['state'] or '').strip()
+        dt = (item['district'] or '').strip()
+        if st:
+            if st not in state_districts_map:
+                state_districts_map[st] = set()
+            if dt:
+                state_districts_map[st].add(dt)
+                all_districts.add(dt)
+
+    state_districts_map_json = {st: sorted(list(dt_set)) for st, dt_set in state_districts_map.items()}
+    districts = sorted(list(all_districts))
 
     context = {
         'projects': projects,
         'ministries': ministries,
         'states': states,
+        'districts': districts,
+        'state_districts_json': json.dumps(state_districts_map_json),
         'current_filters': request.GET
     }
     return render(request, 'projects.html', context)
@@ -537,6 +560,7 @@ def search_api(request):
         Q(name__icontains=q) | 
         Q(project_id__icontains=q) | 
         Q(state__icontains=q) | 
+        Q(district__icontains=q) | 
         Q(ministry__icontains=q) | 
         Q(implementing_agency__icontains=q)
     )[:10]
@@ -549,6 +573,7 @@ def search_api(request):
             'name': p.name,
             'ministry': p.ministry,
             'state': p.state,
+            'district': p.district,
             'status': p.status,
             'url': f'/projects/{p.project_id}/'
         })
