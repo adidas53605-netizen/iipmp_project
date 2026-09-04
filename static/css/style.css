@@ -89,19 +89,20 @@ body {
 }
 
 #globalSearch {
-  border-radius: 20px;
-  background-color: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: var(--bg-white);
-  padding: 8px 16px;
+  border-radius: 6px 0 0 6px;
+  background-color: var(--bg-surface);
+  border: 1px solid #cbd5e1;
+  color: var(--text-primary);
+  padding: 6px 12px;
 }
 #globalSearch::placeholder {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
+  opacity: 0.8;
 }
 #globalSearch:focus {
-  background-color: rgba(255, 255, 255, 0.25);
-  box-shadow: none;
-  border-color: rgba(255, 255, 255, 0.5);
+  background-color: var(--bg-white);
+  box-shadow: 0 0 0 0.2rem rgba(0, 51, 102, 0.15);
+  border-color: var(--primary);
   color: var(--text-primary);
 }
 
