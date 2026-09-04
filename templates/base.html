@@ -89,9 +89,6 @@
                         <a class="nav-link {% block nav_review %}{% endblock %}" href="{% url 'review' %}">Review</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% block nav_alerts %}{% endblock %}" href="{% url 'alerts' %}">Alerts</a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link {% block nav_help %}{% endblock %}" href="{% url 'help' %}">Help</a>
                     </li>
                 </ul>
@@ -102,14 +99,6 @@
                             <button class="btn btn-primary" type="submit" title="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
                         </div>
                     </form>
-                    <a href="{% url 'alerts' %}" class="btn btn-light position-relative me-3" title="Alerts Feed">
-                        <i class="fa-regular fa-bell"></i>
-                        {% block alert_count %}
-                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
-                            <span class="visually-hidden">New alerts</span>
-                        </span>
-                        {% endblock %}
-                    </a>
                     
                     <!-- Dynamic User & Logout Controls -->
                     <div class="dropdown me-2" id="navUserDropdownArea">
@@ -160,7 +149,6 @@
                     <ul class="list-unstyled">
                         <li><a href="{% url 'dashboard' %}"><i class="fa-solid fa-angle-right me-2"></i>Dashboard</a></li>
                         <li><a href="{% url 'project_list' %}"><i class="fa-solid fa-angle-right me-2"></i>Projects</a></li>
-                        <li><a href="{% url 'alerts' %}"><i class="fa-solid fa-angle-right me-2"></i>Alerts</a></li>
                         <li><a href="{% url 'help' %}"><i class="fa-solid fa-angle-right me-2"></i>Help</a></li>
                     </ul>
                 </div>

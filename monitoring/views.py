@@ -157,10 +157,6 @@ def project_list(request):
     if ministry and ministry.strip():
         projects = projects.filter(ministry__icontains=ministry.strip())
         
-    state = request.GET.get('state')
-    if state and state.strip():
-        projects = projects.filter(state__icontains=state.strip())
-
     district = request.GET.get('district')
     if district and district.strip():
         projects = projects.filter(district__icontains=district.strip())

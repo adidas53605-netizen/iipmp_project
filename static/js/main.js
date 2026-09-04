@@ -105,16 +105,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // 3. Notification Bell Tooltip/Dropdown Init (basic)
-    const bell = document.querySelector('.notification-bell');
-    if (bell) {
-        bell.addEventListener('click', function(e) {
-            e.preventDefault();
-            // Basic implementation: could toggle a notification dropdown here
-            alert('Notifications functionality coming soon!');
-        });
-    }
-
     // 4. Smooth Scroll for Anchor Links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {

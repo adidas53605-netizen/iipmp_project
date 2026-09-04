@@ -23,28 +23,19 @@
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-body bg-light rounded">
             <form method="GET" action="{% url 'project_list' %}" class="row g-3 align-items-end">
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted">Search</label>
                     <div class="input-group">
                         <span class="input-group-text bg-white"><i class="fa-solid fa-search"></i></span>
                         <input type="text" name="search" class="form-control" placeholder="Project Name or ID..." value="{{ request.GET.search|default:'' }}">
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted">Ministry</label>
                     <select name="ministry" class="form-select">
                         <option value="">All Ministries</option>
                         {% for min in ministries %}
                         <option value="{{ min }}" {% if request.GET.ministry == min %}selected{% endif %}>{{ min }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small fw-bold text-muted">State</label>
-                    <select name="state" id="stateSelect" class="form-select">
-                        <option value="">All States</option>
-                        {% for st in states %}
-                        <option value="{{ st }}" {% if request.GET.state == st %}selected{% endif %}>{{ st }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -175,26 +166,19 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const stateSelect = document.getElementById('stateSelect');
     const districtSelect = document.getElementById('districtSelect');
     const stateDistrictsMap = {{ state_districts_json|safe }};
     const currentDistrict = "{{ request.GET.district|default:''|escapejs }}";
 
     function updateDistrictDropdown() {
-        if (!stateSelect || !districtSelect || !stateDistrictsMap) return;
-        const selectedState = stateSelect.value.trim();
+        if (!districtSelect || !stateDistrictsMap) return;
         const activeDistrict = districtSelect.value.trim() || currentDistrict;
         
         districtSelect.innerHTML = '<option value="">All Districts</option>';
 
-        let availableDistricts = [];
-        if (selectedState && stateDistrictsMap[selectedState]) {
-            availableDistricts = stateDistrictsMap[selectedState];
-        } else {
-            let allDt = new Set();
-            Object.values(stateDistrictsMap).forEach(list => list.forEach(d => allDt.add(d)));
-            availableDistricts = Array.from(allDt).sort();
-        }
+        let allDt = new Set();
+        Object.values(stateDistrictsMap).forEach(list => list.forEach(d => allDt.add(d)));
+        const availableDistricts = Array.from(allDt).sort();
 
         availableDistricts.forEach(function(dt) {
             const option = document.createElement('option');
@@ -207,13 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    if (stateSelect) {
-        stateSelect.addEventListener('change', function() {
-            if (districtSelect) districtSelect.value = '';
-            updateDistrictDropdown();
-        });
-        updateDistrictDropdown();
-    }
+    updateDistrictDropdown();
 });
 </script>
 {% endblock %}
