@@ -5,6 +5,7 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('projects/', views.project_list, name='project_list'),
+    path('projects/add/', views.project_create, name='project_add'),
     path('projects/<str:project_id>/', views.project_detail, name='project_detail'),
     path('database/', views.database_manage, name='database_manage'),
     path('database/project/add/', views.project_create, name='project_create'),

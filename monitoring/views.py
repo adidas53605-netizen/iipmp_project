@@ -241,13 +241,22 @@ def database_manage(request):
 
 @login_required
 def project_create(request):
+    import re
     if request.method == 'POST':
         form = ProjectForm(request.POST)
         if form.is_valid():
-            project = form.save()
+            project = form.save(commit=False)
+            if not project.project_id or not project.project_id.strip():
+                existing_ids = list(Project.objects.values_list('project_id', flat=True))
+                nums = [int(re.search(r'\d+', pid).group()) for pid in existing_ids if pid and re.search(r'\d+', pid)]
+                next_num = (max(nums) + 1) if nums else 1
+                project.project_id = f"PROJ-{next_num:03d}"
+            if not project.start_date:
+                project.start_date = date.today()
+            project.save()
             update_project_automation(project)
-            messages.success(request, 'Project created successfully.')
-            return redirect('database_manage')
+            messages.success(request, f'Project {project.name} ({project.project_id}) created successfully.')
+            return redirect('project_list')
     else:
         form = ProjectForm()
     
