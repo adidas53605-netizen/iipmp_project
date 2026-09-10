@@ -229,7 +229,6 @@ def project_detail(request, project_id):
     }
     return render(request, 'project_detail.html', context)
 
-@login_required
 def database_manage(request):
     projects = Project.objects.all()
     csv_form = CSVImportForm()
@@ -239,7 +238,6 @@ def database_manage(request):
     }
     return render(request, 'database.html', context)
 
-@login_required
 def project_create(request):
     import re
     if request.method == 'POST':
@@ -263,7 +261,6 @@ def project_create(request):
     context = {'form': form, 'action': 'Add New Project'}
     return render(request, 'project_form.html', context)
 
-@login_required
 def project_edit(request, project_id):
     project = get_object_or_404(Project, project_id=project_id)
     if request.method == 'POST':
@@ -279,7 +276,6 @@ def project_edit(request, project_id):
     context = {'form': form, 'action': 'Edit Project', 'project': project}
     return render(request, 'project_form.html', context)
 
-@login_required
 def project_delete(request, project_id):
     if request.method == 'POST':
         project = get_object_or_404(Project, project_id=project_id)
