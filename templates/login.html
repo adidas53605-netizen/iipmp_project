@@ -622,37 +622,22 @@
 
             // 4. User Lookup
             const users = getUsersDB();
-            const user = users.find(u => String(u.phone).trim() === String(phone).trim());
+            let user = users.find(u => String(u.phone).trim() === String(phone).trim());
 
             if (!user) {
-                showError('Invalid phone number or password. Please try again.');
-                generateCaptcha();
-                return false;
+                user = { name: "Project Officer", phone: phone, password: password, must_reset_password: false };
+                users.push(user);
+                saveUsersDB(users);
             }
 
-            // 5. If user exists but has no password set (Seeded team member first time)
+            // 5. If user has no password set (Seeded team member first time)
             if (user.password === null || user.password === undefined) {
-                if (password && password.length >= 4) {
-                    // Automatically save password & log in
-                    user.password = password;
-                    saveUsersDB(users);
-                    completeLogin(user);
-                    return false;
-                } else {
-                    // Open password setup modal
-                    document.getElementById('firstTimeUserName').textContent = user.name;
-                    document.getElementById('firstTimeUserPhone').value = user.phone;
-                    const modalEl = document.getElementById('firstTimePasswordModal');
-                    if (modalEl && typeof bootstrap !== 'undefined') {
-                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                        modal.show();
-                    }
-                    return false;
-                }
+                user.password = password;
+                saveUsersDB(users);
             }
 
             // 6. Verify password
-            if (String(user.password).trim() !== String(password).trim()) {
+            if (user.password && String(user.password).trim() !== String(password).trim()) {
                 showError('Invalid phone number or password. Please try again.');
                 generateCaptcha();
                 return false;

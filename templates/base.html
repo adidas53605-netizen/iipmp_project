@@ -30,11 +30,7 @@
             var path = window.location.pathname;
             var isLoggedIn = sessionStorage.getItem('iipmp_logged_in') === 'true';
 
-            if (path === '/login/' || path === '/login') {
-                if (isLoggedIn) {
-                    window.location.href = '{% url "dashboard" %}';
-                }
-            } else {
+            if (path !== '/login/' && path !== '/login') {
                 if (!isLoggedIn) {
                     window.location.href = '{% url "login" %}';
                 }
