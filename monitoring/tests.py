@@ -64,3 +64,26 @@ class SecurityTestCase(TestCase):
         response = self.client.get(admin_login_url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Admin Authentication")
+
+    def test_project_status_counts_sum_to_total(self):
+        from monitoring.models import Project
+        from datetime import date
+        Project.objects.all().delete()
+        Project.objects.create(project_id='P1', name='Proj 1', ministry='M1', state='WB', approved_cost=10, start_date=date.today(), expected_completion=date.today(), status='ongoing', risk_level='high')
+        Project.objects.create(project_id='P2', name='Proj 2', ministry='M1', state='WB', approved_cost=10, start_date=date.today(), expected_completion=date.today(), status='completed', risk_level='low')
+        Project.objects.create(project_id='P3', name='Proj 3', ministry='M1', state='WB', approved_cost=10, start_date=date.today(), expected_completion=date.today(), status='delayed', risk_level='high')
+        Project.objects.create(project_id='P4', name='Proj 4', ministry='M1', state='WB', approved_cost=10, start_date=date.today(), expected_completion=date.today(), status='not_started', risk_level='medium')
+
+        self.client.login(username='admin1', password='AdminPassword@123')
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 200)
+        
+        total = response.context['total_projects']
+        ongoing = response.context['ongoing_count']
+        completed = response.context['completed_count']
+        delayed = response.context['delayed_count']
+        on_hold = response.context['not_started_count']
+
+        self.assertEqual(total, 4)
+        self.assertEqual(ongoing + completed + delayed + on_hold, total)
+
