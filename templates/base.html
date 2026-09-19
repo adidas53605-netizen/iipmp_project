@@ -74,6 +74,7 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="mainNav">
+                {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'admin_login' %}
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
                         <a class="nav-link {% block nav_dashboard %}{% endblock %}" href="{% url 'dashboard' %}">Dashboard</a>
@@ -97,7 +98,11 @@
                         <a class="nav-link {% block nav_help %}{% endblock %}" href="{% url 'help' %}">Help</a>
                     </li>
                 </ul>
+                {% else %}
+                <div class="me-auto"></div>
+                {% endif %}
                 <div class="d-flex align-items-center" id="navAuthSection">
+                    {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'admin_login' %}
                     <form class="d-flex me-3 search-container position-relative" action="{% url 'project_list' %}" method="GET" id="globalSearchForm" style="min-width: 260px;">
                         <div class="input-group input-group-sm">
                             <input class="form-control" type="search" placeholder="Search projects, IDs..." aria-label="Search" id="globalSearch" name="search" autocomplete="off" value="{{ request.GET.search|default:'' }}">
@@ -112,6 +117,7 @@
                         </span>
                         {% endblock %}
                     </a>
+                    {% endif %}
                     
                     <!-- Dynamic User & Logout Controls -->
                     <div class="dropdown" id="navUserDropdownArea">
