@@ -537,8 +537,13 @@
             alertArea.classList.remove('d-none');
             alertArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
+        // Retain phone number but clear password field after a failed attempt
         const passInput = document.getElementById('loginPassword');
         if (passInput) passInput.value = '';
+        const regPassInput = document.getElementById('regPassword');
+        if (regPassInput) regPassInput.value = '';
+        const regConfirmPassInput = document.getElementById('regConfirmPassword');
+        if (regConfirmPassInput) regConfirmPassInput.value = '';
     }
 
     function clearError() {
@@ -575,7 +580,8 @@
 
             // 3. Captcha validation
             if (parseInt(captcha, 10) !== currentCaptchaAnswer) {
-                showError('Incorrect captcha answer. Please try again.');
+                showError('Incorrect answer, please try again.');
+                if (captchaInput) captchaInput.value = '';
                 generateCaptcha();
                 return false;
             }
@@ -692,7 +698,9 @@
             }
 
             if (parseInt(captchaInput, 10) !== currentCaptchaAnswer) {
-                showError('Incorrect captcha answer. Please try again.');
+                showError('Incorrect answer, please try again.');
+                const regCap = document.getElementById('regCaptcha');
+                if (regCap) regCap.value = '';
                 generateCaptcha();
                 return false;
             }
