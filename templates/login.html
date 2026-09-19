@@ -213,13 +213,14 @@
             <!-- ========================================================= -->
             <!-- MODE 1: LOGIN FORM                                       -->
             <!-- ========================================================= -->
-            <form id="loginForm" onsubmit="handleLoginSubmit(event)">
+            <form id="loginForm" method="POST" action="{% url 'login' %}" onsubmit="return handleLoginSubmit(event)">
+                {% csrf_token %}
                 <!-- Phone Number -->
                 <div class="mb-3">
                     <label for="loginPhone" class="form-label">Phone Number <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
-                        <input type="tel" class="form-control font-monospace" id="loginPhone" placeholder="Enter 10-digit mobile number" maxlength="10" required autocomplete="tel">
+                        <input type="tel" class="form-control font-monospace" id="loginPhone" name="phone" placeholder="Enter 10-digit mobile number" maxlength="10" required autocomplete="tel">
                     </div>
                 </div>
 
@@ -228,7 +229,7 @@
                     <label for="loginPassword" class="form-label">Password <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                        <input type="password" class="form-control" id="loginPassword" placeholder="Enter your password" required autocomplete="current-password">
+                        <input type="password" class="form-control" id="loginPassword" name="password" placeholder="Enter your password" required autocomplete="current-password">
                         <button type="button" class="btn btn-outline-secondary px-3" onclick="togglePassword('loginPassword', 'loginEyeIcon')" title="Toggle password visibility">
                             <i class="fa-solid fa-eye" id="loginEyeIcon"></i>
                         </button>
@@ -260,7 +261,8 @@
             <!-- ========================================================= -->
             <!-- MODE 2: REGISTER FORM                                    -->
             <!-- ========================================================= -->
-            <form id="registerForm" onsubmit="handleRegisterSubmit(event)" class="d-none">
+            <form id="registerForm" method="POST" action="{% url 'login' %}" onsubmit="return handleRegisterSubmit(event)" class="d-none">
+                {% csrf_token %}
                 <!-- Full Name -->
                 <div class="mb-3">
                     <label for="regName" class="form-label">Full Name <span class="text-danger">*</span></label>
@@ -353,7 +355,7 @@
                     </div>
                 </div>
 
-                <form id="otpForm" onsubmit="handleOtpSubmit(event)">
+                <form id="otpForm" onsubmit="return handleOtpSubmit(event)">
                     <div class="mb-3">
                         <label for="otpInput" class="form-label">Enter 6-Digit OTP <span class="text-danger">*</span></label>
                         <div class="input-group">
@@ -433,18 +435,6 @@
                     <div class="mb-3">
                         <label for="confirmNewPassInput" class="form-label">Confirm New Password <span class="text-danger">*</span></label>
                         <input type="password" class="form-control" id="confirmNewPassInput" placeholder="Re-enter password" required>
-                    </div>
-                    <button type="submit" class="btn btn-warning w-100 fw-bold text-navy py-2 shadow-sm mt-2">
-                        <i class="fa-solid fa-check-circle me-1"></i> Save Password & Enter Dashboard
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-                    <div class="mb-3">
-                        <label for="confirmNewPassInput" class="form-label">Confirm New Password <span class="text-danger">*</span></label>
-                        <input type="password" class="form-control" id="confirmNewPassInput" placeholder="Re-enter password" required minlength="4">
                     </div>
                     <button type="submit" class="btn btn-warning w-100 fw-bold text-navy py-2 shadow-sm mt-2">
                         <i class="fa-solid fa-check-circle me-1"></i> Save Password & Enter Dashboard
@@ -1005,10 +995,15 @@
 
     // Complete Login Sequence & Redirect
     function completeLogin(user) {
+        if (!user) user = {};
+        const userName = user.name || 'Project Officer';
+        const userPhone = user.phone || '';
+        const userEmail = userName;
+
         sessionStorage.setItem('iipmp_logged_in', 'true');
-        sessionStorage.setItem('iipmp_user_name', user.name);
-        sessionStorage.setItem('iipmp_user_phone', user.phone);
-        sessionStorage.setItem('iipmp_user_email', user.name);
+        sessionStorage.setItem('iipmp_user_name', userName);
+        sessionStorage.setItem('iipmp_user_phone', userPhone);
+        sessionStorage.setItem('iipmp_user_email', userEmail);
         sessionStorage.setItem('iipmp_user_role', 'Nodal Officer');
 
         window.location.href = '{% url "dashboard" %}';

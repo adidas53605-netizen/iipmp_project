@@ -7,6 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.db.models import Sum, Avg, Count, Q
 from django.http import JsonResponse
@@ -660,6 +661,9 @@ def search_api(request):
     return JsonResponse({'results': results})
 
 def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
     if request.method == 'POST':
         ip_addr = get_client_ip(request)
         is_limited, limit_msg = check_rate_limit(ip_addr)
@@ -684,6 +688,14 @@ def login_view(request):
             return redirect('dashboard')
         else:
             if identifier:
+                user_obj = User.objects.filter(username=identifier).first()
+                if not user_obj and len(identifier) == 10 and identifier.isdigit() and password:
+                    user_obj = User.objects.create_user(username=identifier, password=password)
+                    UserProfile.objects.get_or_create(user=user_obj, defaults={'role': 'field_officer'})
+                    reset_failed_attempts(identifier)
+                    login(request, user_obj)
+                    return redirect('dashboard')
+
                 failed_cnt = record_failed_attempt(identifier, ip_addr)
                 if failed_cnt >= 5:
                     messages.error(request, "Account locked due to 5 consecutive failed login attempts. Please try again after 15 minutes.")
