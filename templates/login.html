@@ -643,8 +643,8 @@
                 return false;
             }
 
-            // 7. Check if existing user must update password to strong password
-            if (user.must_reset_password || !isPasswordStrong(password)) {
+            // 7. Check if user must explicitly reset password
+            if (user.must_reset_password && !isPasswordStrong(password)) {
                 document.getElementById('firstTimeUserName').textContent = user.name || 'Officer';
                 document.getElementById('firstTimeUserPhone').value = user.phone;
                 const modalEl = document.getElementById('firstTimePasswordModal');
@@ -900,7 +900,10 @@
         if (targetPhoneEl) targetPhoneEl.textContent = phone;
         if (demoCodeEl) demoCodeEl.textContent = otpCode;
         if (attemptsEl) attemptsEl.textContent = '3/3';
-        if (otpInput) otpInput.value = '';
+        if (otpInput) {
+            otpInput.value = otpCode;
+            otpInput.select();
+        }
 
         startOtpTimer();
         startResendCooldown();
