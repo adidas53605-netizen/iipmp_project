@@ -325,6 +325,51 @@
                 </button>
             </form>
 
+            <!-- ========================================================= -->
+            <!-- MODE 3: OTP VERIFICATION STEP                            -->
+            <!-- ========================================================= -->
+            <div id="otpSection" class="d-none">
+                <div class="alert alert-warning border-warning shadow-sm rounded-3 py-2 px-3 mb-3">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="fa-solid fa-mobile-screen-button text-warning fs-5 mt-1"></i>
+                        <div>
+                            <span class="fw-bold d-block text-dark">Demo OTP — SMS integration pending</span>
+                            <span class="small text-muted">A 6-digit OTP has been sent to <strong id="otpTargetPhoneDisplay"></strong>.</span>
+                            <div class="mt-2 p-2 bg-white rounded border border-warning font-monospace text-center fs-5 fw-bold text-navy" id="demoOtpBanner">
+                                OTP: <span id="demoOtpCodeDisplay" class="text-danger">123456</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="otpForm" onsubmit="handleOtpSubmit(event)">
+                    <div class="mb-3">
+                        <label for="otpInput" class="form-label">Enter 6-Digit OTP <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fa-solid fa-key"></i></span>
+                            <input type="text" class="form-control font-monospace text-center fs-5" id="otpInput" placeholder="6-digit code" maxlength="6" required autocomplete="one-time-code">
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
+                            <span>Valid for: <strong id="otpTimerDisplay" class="text-danger">05:00</strong></span>
+                            <span>Attempts left: <strong id="otpAttemptsDisplay" class="text-dark">3/3</strong></span>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="otpSubmitBtn" class="btn-submit-action mb-2">
+                        <i class="fa-solid fa-shield-check me-2"></i>Verify OTP & Continue
+                    </button>
+
+                    <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="resendOtpBtn" onclick="handleResendOtp()" disabled>
+                            Resend OTP (<span id="resendCountdown">30</span>s)
+                        </button>
+                        <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted" onclick="cancelOtpAndRestart()">
+                            <i class="fa-solid fa-arrow-left me-1"></i>Back to Login
+                        </button>
+                    </div>
+                </form>
+            </div>
+
         </div>
 
         <!-- Card Footer -->
@@ -573,8 +618,8 @@
                 return false;
             }
 
-            // 7. Success -> Log In & Redirect
-            completeLogin(user);
+            // 7. Success -> Initiate OTP Verification Step
+            initiateOtpStep(phone, user, 'login');
         } catch (err) {
             console.error('[IIPMP Login Error]', err);
             showError('An unexpected error occurred during login. Please try again.');
@@ -604,7 +649,7 @@
         if (userIndex !== -1) {
             users[userIndex].password = newPass;
             saveUsersDB(users);
-            completeLogin(users[userIndex]);
+            initiateOtpStep(phone, users[userIndex], 'login');
         }
         return false;
     }
@@ -661,27 +706,201 @@
                 return false;
             }
 
-            if (existing && existing.password === null) {
-                // If user was in seed list without password, update their password & name
-                existing.name = name;
-                existing.password = password;
-                saveUsersDB(users);
-                completeLogin(existing);
-                return false;
-            }
-
-            // 3. Save new user & Log In
             const newUser = { name: name, phone: phone, password: password };
-            users.push(newUser);
-            saveUsersDB(users);
-
-            completeLogin(newUser);
+            // Initiate OTP Verification before activating new account
+            initiateOtpStep(phone, newUser, 'register');
         } catch (err) {
             console.error('[IIPMP Register Error]', err);
             showError('An unexpected error occurred during registration. Please try again.');
             generateCaptcha();
         }
         return false;
+    }
+
+    // =========================================================
+    // 6. OTP VERIFICATION HANDLERS & TIMERS
+    // =========================================================
+    let currentOtpState = null;
+    let otpTimerInterval = null;
+    let resendCooldownInterval = null;
+
+    function startOtpTimer() {
+        if (otpTimerInterval) clearInterval(otpTimerInterval);
+        const display = document.getElementById('otpTimerDisplay');
+
+        otpTimerInterval = setInterval(() => {
+            if (!currentOtpState) {
+                clearInterval(otpTimerInterval);
+                return;
+            }
+
+            const remaining = Math.max(0, Math.floor((currentOtpState.expiresAt - Date.now()) / 1000));
+            const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
+            const secs = String(remaining % 60).padStart(2, '0');
+
+            if (display) display.textContent = `${mins}:${secs}`;
+
+            if (remaining <= 0) {
+                clearInterval(otpTimerInterval);
+                showError('OTP expired after 5 minutes. Please click Resend OTP or start again.');
+            }
+        }, 1000);
+    }
+
+    function startResendCooldown() {
+        if (resendCooldownInterval) clearInterval(resendCooldownInterval);
+        const resendBtn = document.getElementById('resendOtpBtn');
+
+        let cooldown = 30;
+        if (resendBtn) {
+            resendBtn.disabled = true;
+            resendBtn.innerHTML = `Resend OTP (<span id="resendCountdown">${cooldown}</span>s)`;
+        }
+
+        resendCooldownInterval = setInterval(() => {
+            cooldown--;
+            const countdownSpan = document.getElementById('resendCountdown');
+            if (countdownSpan) countdownSpan.textContent = cooldown;
+
+            if (cooldown <= 0) {
+                clearInterval(resendCooldownInterval);
+                if (resendBtn) {
+                    resendBtn.disabled = false;
+                    resendBtn.innerHTML = '<i class="fa-solid fa-arrows-rotate me-1"></i>Resend OTP';
+                }
+            }
+        }, 1000);
+    }
+
+    function initiateOtpStep(phone, pendingUser, context) {
+        clearError();
+        const otpCode = String(Math.floor(100000 + Math.random() * 900000)); // 6-digit OTP
+
+        currentOtpState = {
+            code: otpCode,
+            expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
+            attemptsLeft: 3,
+            phone: phone,
+            pendingUser: pendingUser,
+            context: context
+        };
+
+        const loginForm = document.getElementById('loginForm');
+        const regForm = document.getElementById('registerForm');
+        const modeTabs = document.querySelector('.mode-nav-tabs');
+        const otpSection = document.getElementById('otpSection');
+
+        if (loginForm) loginForm.classList.add('d-none');
+        if (regForm) regForm.classList.add('d-none');
+        if (modeTabs) modeTabs.classList.add('d-none');
+        if (otpSection) otpSection.classList.remove('d-none');
+
+        const targetPhoneEl = document.getElementById('otpTargetPhoneDisplay');
+        const demoCodeEl = document.getElementById('demoOtpCodeDisplay');
+        const attemptsEl = document.getElementById('otpAttemptsDisplay');
+        const otpInput = document.getElementById('otpInput');
+
+        if (targetPhoneEl) targetPhoneEl.textContent = phone;
+        if (demoCodeEl) demoCodeEl.textContent = otpCode;
+        if (attemptsEl) attemptsEl.textContent = '3/3';
+        if (otpInput) otpInput.value = '';
+
+        startOtpTimer();
+        startResendCooldown();
+    }
+
+    function handleOtpSubmit(e) {
+        if (e) e.preventDefault();
+        clearError();
+
+        if (!currentOtpState) {
+            showError('OTP session expired. Please restart login.');
+            cancelOtpAndRestart();
+            return false;
+        }
+
+        const otpInput = document.getElementById('otpInput');
+        const enteredOtp = otpInput ? otpInput.value.trim() : '';
+
+        if (!/^[0-9]{6}$/.test(enteredOtp)) {
+            showError('Please enter a valid 6-digit OTP.');
+            return false;
+        }
+
+        if (Date.now() > currentOtpState.expiresAt) {
+            showError('OTP expired after 5 minutes. Please click Resend OTP.');
+            return false;
+        }
+
+        if (enteredOtp !== currentOtpState.code) {
+            currentOtpState.attemptsLeft -= 1;
+            const attemptsEl = document.getElementById('otpAttemptsDisplay');
+            if (attemptsEl) attemptsEl.textContent = `${currentOtpState.attemptsLeft}/3`;
+
+            if (currentOtpState.attemptsLeft <= 0) {
+                showError('OTP invalidated due to 3 incorrect attempts. Please restart login.');
+                cancelOtpAndRestart();
+                return false;
+            }
+
+            showError(`Incorrect OTP code. ${currentOtpState.attemptsLeft} attempt(s) remaining.`);
+            if (otpInput) otpInput.value = '';
+            return false;
+        }
+
+        const { pendingUser, context } = currentOtpState;
+        if (otpTimerInterval) clearInterval(otpTimerInterval);
+        if (resendCooldownInterval) clearInterval(resendCooldownInterval);
+        currentOtpState = null;
+
+        if (context === 'register') {
+            const users = getUsersDB();
+            const existingIndex = users.findIndex(u => String(u.phone).trim() === String(pendingUser.phone).trim());
+            if (existingIndex !== -1) {
+                users[existingIndex] = pendingUser;
+            } else {
+                users.push(pendingUser);
+            }
+            saveUsersDB(users);
+        }
+
+        completeLogin(pendingUser);
+        return false;
+    }
+
+    function handleResendOtp() {
+        if (!currentOtpState) return;
+
+        const newOtp = String(Math.floor(100000 + Math.random() * 900000));
+        currentOtpState.code = newOtp;
+        currentOtpState.expiresAt = Date.now() + 5 * 60 * 1000;
+        currentOtpState.attemptsLeft = 3;
+
+        const demoCodeEl = document.getElementById('demoOtpCodeDisplay');
+        const attemptsEl = document.getElementById('otpAttemptsDisplay');
+        const otpInput = document.getElementById('otpInput');
+
+        if (demoCodeEl) demoCodeEl.textContent = newOtp;
+        if (attemptsEl) attemptsEl.textContent = '3/3';
+        if (otpInput) otpInput.value = '';
+
+        startOtpTimer();
+        startResendCooldown();
+        clearError();
+    }
+
+    function cancelOtpAndRestart() {
+        if (otpTimerInterval) clearInterval(otpTimerInterval);
+        if (resendCooldownInterval) clearInterval(resendCooldownInterval);
+        currentOtpState = null;
+
+        const otpSection = document.getElementById('otpSection');
+        const modeTabs = document.querySelector('.mode-nav-tabs');
+
+        if (otpSection) otpSection.classList.add('d-none');
+        if (modeTabs) modeTabs.classList.remove('d-none');
+
+        switchMode(currentMode || 'login');
     }
 
     // Complete Login Sequence & Redirect
