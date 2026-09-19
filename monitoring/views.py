@@ -238,9 +238,10 @@ def project_list(request):
     state_districts_map_json = {st: sorted(list(dt_set)) for st, dt_set in state_districts_map.items()}
     districts = sorted(list(all_districts))
 
-    # Optimization & Pagination
+    # Optimization & Pagination (Default per_page=50 to display all projects on Page 1)
     projects = projects.prefetch_related('milestones', 'alerts').order_by('-updated_at')
-    paginator = Paginator(projects, 12)
+    per_page = int(request.GET.get('per_page', 50))
+    paginator = Paginator(projects, per_page)
     page = request.GET.get('page')
     try:
         page_obj = paginator.page(page)
@@ -253,6 +254,7 @@ def project_list(request):
         'projects': page_obj,
         'page_obj': page_obj,
         'paginator': paginator,
+        'total_filtered_count': projects.count(),
         'ministries': ministries,
         'states': states,
         'districts': districts,
