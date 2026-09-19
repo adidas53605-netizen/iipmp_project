@@ -282,12 +282,23 @@
                 <!-- Password -->
                 <div class="mb-3">
                     <label for="regPassword" class="form-label">Create Password <span class="text-danger">*</span></label>
-                    <div class="input-group">
+                    <div class="input-group mb-2">
                         <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                        <input type="password" class="form-control" id="regPassword" placeholder="Create a password" required autocomplete="new-password">
+                        <input type="password" class="form-control" id="regPassword" placeholder="Create a strong password" required autocomplete="new-password" oninput="handlePasswordChecklistInput('regPassword', 'reg-')">
                         <button type="button" class="btn btn-outline-secondary px-3" onclick="togglePassword('regPassword', 'regEyeIcon1')">
                             <i class="fa-solid fa-eye" id="regEyeIcon1"></i>
                         </button>
+                    </div>
+                    <!-- Live Password Strength Checklist -->
+                    <div class="p-2.5 mb-2 bg-light rounded-3 border small" id="regPasswordChecklist">
+                        <span class="fw-bold d-block text-navy mb-1" style="font-size: 0.72rem; letter-spacing: 0.3px;">PASSWORD STRENGTH REQUIREMENTS:</span>
+                        <div class="d-flex flex-column gap-1" style="font-size: 0.76rem;">
+                            <span id="reg-length" class="text-muted"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> At least 8 characters</span>
+                            <span id="reg-uppercase" class="text-muted"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> At least 1 uppercase letter (A-Z)</span>
+                            <span id="reg-lowercase" class="text-muted"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> At least 1 lowercase letter (a-z)</span>
+                            <span id="reg-number" class="text-muted"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> At least 1 number (0-9)</span>
+                            <span id="reg-special" class="text-muted"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> At least 1 special character (!@#$%^&*)</span>
+                        </div>
                     </div>
                 </div>
 
@@ -386,28 +397,51 @@
 
 </div>
 
-<!-- Modal: Set First-Time Password for Pre-registered Users -->
+<!-- Modal: Update Password for Existing / Weak Password Users -->
 <div class="modal fade" id="firstTimePasswordModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-navy text-white" style="background-color:#003366; border-bottom: 3px solid #FF9933;">
-                <h6 class="modal-title fw-bold text-white"><i class="fa-solid fa-key text-warning me-2"></i>Set Account Password</h6>
+                <h6 class="modal-title fw-bold text-white"><i class="fa-solid fa-key text-warning me-2"></i>Update Your Password</h6>
             </div>
             <div class="modal-body p-4">
-                <div class="alert alert-info py-2 px-3 small mb-3">
-                    <i class="fa-solid fa-circle-info me-1"></i> Welcome, <strong id="firstTimeUserName">Officer</strong>! Since this is your first time logging in, please create a password for your account.
+                <div class="alert alert-warning py-2 px-3 small mb-3">
+                    <i class="fa-solid fa-shield-halved me-1"></i> Welcome, <strong id="firstTimeUserName">Officer</strong>! To protect your account, please update your password to comply with the new strong password security policy.
                 </div>
                 
                 <div id="firstTimeErrorAlert" class="alert alert-danger py-2 px-3 small d-none mb-3">
-                    Password fields must match and be at least 4 characters long.
+                    Password fields must match and meet all strong password requirements below.
                 </div>
 
                 <form id="firstTimePassForm" onsubmit="handleFirstTimePassSubmit(event)">
                     <input type="hidden" id="firstTimeUserPhone">
                     <div class="mb-3">
-                        <label for="newPassInput" class="form-label">Create New Password <span class="text-danger">*</span></label>
-                        <input type="password" class="form-control" id="newPassInput" placeholder="Enter new password" required minlength="4">
+                        <label for="newPassInput" class="form-label">Create New Strong Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="newPassInput" placeholder="Enter new password" required oninput="handlePasswordChecklistInput('newPassInput', 'modal-')">
                     </div>
+                    <!-- Live Password Strength Checklist for Modal -->
+                    <div class="p-2.5 mb-3 bg-light rounded-3 border small" id="modalPasswordChecklist">
+                        <span class="fw-bold d-block text-navy mb-1" style="font-size: 0.72rem; letter-spacing: 0.3px;">PASSWORD STRENGTH REQUIREMENTS:</span>
+                        <div class="d-flex flex-column gap-1" style="font-size: 0.76rem;">
+                            <span id="modal-length" class="text-muted"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> At least 8 characters</span>
+                            <span id="modal-uppercase" class="text-muted"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> At least 1 uppercase letter (A-Z)</span>
+                            <span id="modal-lowercase" class="text-muted"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> At least 1 lowercase letter (a-z)</span>
+                            <span id="modal-number" class="text-muted"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> At least 1 number (0-9)</span>
+                            <span id="modal-special" class="text-muted"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> At least 1 special character (!@#$%^&*)</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmNewPassInput" class="form-label">Confirm New Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="confirmNewPassInput" placeholder="Re-enter password" required>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100 fw-bold text-navy py-2 shadow-sm mt-2">
+                        <i class="fa-solid fa-check-circle me-1"></i> Save Password & Enter Dashboard
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
                     <div class="mb-3">
                         <label for="confirmNewPassInput" class="form-label">Confirm New Password <span class="text-danger">*</span></label>
                         <input type="password" class="form-control" id="confirmNewPassInput" placeholder="Re-enter password" required minlength="4">
@@ -624,7 +658,19 @@
                 return false;
             }
 
-            // 7. Success -> Initiate OTP Verification Step
+            // 7. Check if existing user must update password to strong password
+            if (user.must_reset_password || !isPasswordStrong(password)) {
+                document.getElementById('firstTimeUserName').textContent = user.name || 'Officer';
+                document.getElementById('firstTimeUserPhone').value = user.phone;
+                const modalEl = document.getElementById('firstTimePasswordModal');
+                if (modalEl && typeof bootstrap !== 'undefined') {
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+                }
+                return false;
+            }
+
+            // 8. Success -> Initiate OTP Verification Step
             initiateOtpStep(phone, user, 'login');
         } catch (err) {
             console.error('[IIPMP Login Error]', err);
@@ -634,7 +680,7 @@
         return false;
     }
 
-    // Handle First-Time Password Setting for Pre-registered Users
+    // Handle Password Update for Pre-registered or Existing Users requiring password reset
     function handleFirstTimePassSubmit(e) {
         if (e) e.preventDefault();
         const phone = document.getElementById('firstTimeUserPhone').value.trim();
@@ -642,22 +688,81 @@
         const confirmPass = document.getElementById('confirmNewPassInput').value.trim();
         const errBox = document.getElementById('firstTimeErrorAlert');
 
-        if (newPass.length < 4 || newPass !== confirmPass) {
-            if (errBox) errBox.classList.remove('d-none');
+        if (!isPasswordStrong(newPass)) {
+            if (errBox) {
+                errBox.textContent = 'Password does not meet strong password requirements. Please check all checklist items.';
+                errBox.classList.remove('d-none');
+            }
+            return false;
+        }
+
+        if (newPass !== confirmPass) {
+            if (errBox) {
+                errBox.textContent = 'Passwords do not match. Please verify.';
+                errBox.classList.remove('d-none');
+            }
             return false;
         }
 
         if (errBox) errBox.classList.add('d-none');
 
-        // Save password in DB
+        // Save password in DB and clear must_reset_password flag
         const users = getUsersDB();
         const userIndex = users.findIndex(u => String(u.phone).trim() === String(phone).trim());
         if (userIndex !== -1) {
             users[userIndex].password = newPass;
+            users[userIndex].must_reset_password = false;
             saveUsersDB(users);
+            
+            // Close modal if open
+            const modalEl = document.getElementById('firstTimePasswordModal');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            }
+
             initiateOtpStep(phone, users[userIndex], 'login');
         }
         return false;
+    }
+
+    // =========================================================
+    // STRONG PASSWORD VALIDATION & REAL-TIME CHECKLIST UI
+    // =========================================================
+    function validateStrongPassword(pass) {
+        return {
+            length: pass.length >= 8,
+            uppercase: /[A-Z]/.test(pass),
+            lowercase: /[a-z]/.test(pass),
+            number: /[0-9]/.test(pass),
+            special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pass)
+        };
+    }
+
+    function isPasswordStrong(pass) {
+        const v = validateStrongPassword(pass);
+        return v.length && v.uppercase && v.lowercase && v.number && v.special;
+    }
+
+    function handlePasswordChecklistInput(inputId, prefix) {
+        const pass = document.getElementById(inputId) ? document.getElementById(inputId).value : '';
+        const checks = validateStrongPassword(pass);
+
+        const keys = ['length', 'uppercase', 'lowercase', 'number', 'special'];
+        keys.forEach(k => {
+            const el = document.getElementById(prefix + k);
+            if (el) {
+                if (checks[k]) {
+                    el.className = 'text-success fw-bold';
+                    const icon = el.querySelector('i');
+                    if (icon) icon.className = 'fa-solid fa-circle-check text-success me-1';
+                } else {
+                    el.className = 'text-muted';
+                    const icon = el.querySelector('i');
+                    if (icon) icon.className = 'fa-solid fa-circle-xmark text-danger me-1';
+                }
+            }
+        });
     }
 
     // =========================================================
@@ -685,9 +790,8 @@
                 return false;
             }
 
-            if (password.length < 4) {
-                showError('Password must be at least 4 characters long.');
-                generateCaptcha();
+            if (!isPasswordStrong(password)) {
+                showError('Password does not meet strong password requirements. Please verify all checklist items.');
                 return false;
             }
 
