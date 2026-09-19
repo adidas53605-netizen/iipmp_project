@@ -487,11 +487,13 @@
     function showError(msg) {
         const alertArea = document.getElementById('authErrorAlert');
         const msgArea = document.getElementById('authErrorMessage');
-        if (msgArea) msgArea.textContent = msg;
+        if (msgArea) msgArea.textContent = msg || 'Invalid phone number or password. Please try again.';
         if (alertArea) {
             alertArea.classList.remove('d-none');
             alertArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
+        const passInput = document.getElementById('loginPassword');
+        if (passInput) passInput.value = '';
     }
 
     function clearError() {

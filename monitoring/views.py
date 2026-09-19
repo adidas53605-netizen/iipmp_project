@@ -656,7 +656,7 @@ def login_view(request):
                 if failed_cnt >= 5:
                     messages.error(request, "Account locked due to 5 consecutive failed login attempts. Please try again after 15 minutes.")
                 else:
-                    messages.error(request, f"Invalid phone number or password. Attempt {failed_cnt} of 5.")
+                    messages.error(request, "Invalid phone number or password. Please try again.")
             else:
                 messages.error(request, "Please enter both phone number and password.")
     return render(request, 'login.html')

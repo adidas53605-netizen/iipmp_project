@@ -38,7 +38,7 @@ class SecurityTestCase(TestCase):
         login_url = reverse('login')
         for i in range(1, 5):
             response = self.client.post(login_url, {'username': 'officer1', 'password': 'WrongPassword123'})
-            self.assertContains(response, f"Attempt {i} of 5")
+            self.assertContains(response, "Invalid phone number or password")
         
         # 5th failed attempt should trigger lockout
         response = self.client.post(login_url, {'username': 'officer1', 'password': 'WrongPassword123'})
