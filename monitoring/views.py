@@ -17,6 +17,28 @@ from .forms import ProjectForm, MilestoneForm, CSVImportForm
 from .automation import update_project_automation, compute_cost_overrun, detect_delay
 from .decorators import role_required
 
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+def check_rate_limit(ip_address):
+    if not ip_address:
+        return False, None
+    now = timezone.now()
+    ten_minutes_ago = now - timedelta(minutes=10)
+    recent_attempts = FailedLoginAttempt.objects.filter(
+        ip_address=ip_address,
+        last_failed_at__gte=ten_minutes_ago
+    )
+    total_failures = recent_attempts.aggregate(Sum('failed_count'))['failed_count__sum'] or 0
+    if total_failures >= 10:
+        return True, "Too many failed login attempts from this IP. Please try again after 10 minutes."
+    return False, None
+
 def check_lockout(identifier, ip_address=None):
     now = timezone.now()
     attempt = FailedLoginAttempt.objects.filter(identifier=identifier).first()
@@ -31,6 +53,8 @@ def record_failed_attempt(identifier, ip_address=None):
     attempt, created = FailedLoginAttempt.objects.get_or_create(identifier=identifier, defaults={'ip_address': ip_address})
     attempt.failed_count += 1
     attempt.last_failed_at = now
+    if ip_address:
+        attempt.ip_address = ip_address
     if attempt.failed_count >= 5:
         attempt.locked_until = now + timedelta(minutes=15)
     attempt.save()
@@ -637,11 +661,17 @@ def search_api(request):
 
 def login_view(request):
     if request.method == 'POST':
+        ip_addr = get_client_ip(request)
+        is_limited, limit_msg = check_rate_limit(ip_addr)
+        if is_limited:
+            messages.error(request, limit_msg)
+            return render(request, 'login.html')
+
         identifier = request.POST.get('username') or request.POST.get('phone', '')
         password = request.POST.get('password', '')
         
         if identifier:
-            is_locked, lock_msg = check_lockout(identifier)
+            is_locked, lock_msg = check_lockout(identifier, ip_addr)
             if is_locked:
                 messages.error(request, lock_msg)
                 return render(request, 'login.html')
@@ -654,7 +684,7 @@ def login_view(request):
             return redirect('dashboard')
         else:
             if identifier:
-                failed_cnt = record_failed_attempt(identifier)
+                failed_cnt = record_failed_attempt(identifier, ip_addr)
                 if failed_cnt >= 5:
                     messages.error(request, "Account locked due to 5 consecutive failed login attempts. Please try again after 15 minutes.")
                 else:
