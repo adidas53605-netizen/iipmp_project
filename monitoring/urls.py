@@ -26,5 +26,6 @@ urlpatterns = [
     path('api/dashboard/', views.api_dashboard, name='api_dashboard'),
     path('dashboard/export/', views.export_dashboard_csv, name='export_dashboard_csv'),
     path('login/', views.login_view, name='login'),
+    path('admin-login/', views.admin_login_view, name='admin_login'),
     path('logout/', views.logout_view, name='logout'),
 ]

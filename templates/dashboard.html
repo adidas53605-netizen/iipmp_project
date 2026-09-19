@@ -503,6 +503,30 @@
             </div>
         </div>
 
+        <!-- ===== Field Officer Quick Actions Bar ===== -->
+        <div class="card border-0 shadow-sm mb-4 rounded-3 p-3 bg-white">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-bolt text-warning fs-4"></i>
+                    <div>
+                        <h6 class="fw-bold mb-0 text-navy" style="color:#003366;">Quick Field Actions</h6>
+                        <span class="small text-muted">Direct shortcuts for field officers & project tracking</span>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{% url 'project_add' %}" class="btn btn-warning fw-bold text-navy py-2 px-3 shadow-sm" style="border-radius: 8px;">
+                        <i class="fa-solid fa-plus-circle me-1"></i> Add New Project
+                    </a>
+                    <a href="{% url 'project_list' %}" class="btn text-white fw-bold py-2 px-3 shadow-sm" style="background-color:#003366; border-radius: 8px;">
+                        <i class="fa-solid fa-list-check me-1"></i> View All Projects
+                    </a>
+                    <a href="{% url 'database_manage' %}" class="btn btn-outline-secondary fw-bold py-2 px-3" style="border-radius: 8px;">
+                        <i class="fa-solid fa-database me-1"></i> Manage Records
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- ===== 11 Stat Cards Grid ===== -->
         <div class="row g-3 mb-4">
             <!-- 1. Total Projects -->

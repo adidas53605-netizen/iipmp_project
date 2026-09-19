@@ -1,7 +1,7 @@
 import json
 import csv
 from io import StringIO
-from datetime import date
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -10,11 +10,37 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import authenticate, login, logout
 from django.db.models import Sum, Avg, Count, Q
 from django.http import JsonResponse
-from .models import Project, Milestone, Alert
+from django.utils import timezone
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from .models import Project, Milestone, Alert, UserProfile, FailedLoginAttempt
 from .forms import ProjectForm, MilestoneForm, CSVImportForm
 from .automation import update_project_automation, compute_cost_overrun, detect_delay
+from .decorators import role_required
+
+def check_lockout(identifier, ip_address=None):
+    now = timezone.now()
+    attempt = FailedLoginAttempt.objects.filter(identifier=identifier).first()
+    if attempt and attempt.locked_until and attempt.locked_until > now:
+        remaining_seconds = int((attempt.locked_until - now).total_seconds())
+        remaining_minutes = max(1, remaining_seconds // 60)
+        return True, f"Account locked due to 5 consecutive failed login attempts. Please try again after {remaining_minutes} minute(s)."
+    return False, None
+
+def record_failed_attempt(identifier, ip_address=None):
+    now = timezone.now()
+    attempt, created = FailedLoginAttempt.objects.get_or_create(identifier=identifier, defaults={'ip_address': ip_address})
+    attempt.failed_count += 1
+    attempt.last_failed_at = now
+    if attempt.failed_count >= 5:
+        attempt.locked_until = now + timedelta(minutes=15)
+    attempt.save()
+    return attempt.failed_count
+
+def reset_failed_attempts(identifier):
+    FailedLoginAttempt.objects.filter(identifier=identifier).update(failed_count=0, locked_until=None)
 
 def home(request):
+
     return redirect('login')
 
 def dashboard(request):
@@ -33,8 +59,8 @@ def dashboard(request):
     years_to_finish = 4
 
     status_data = json.dumps({
-        'labels': ['Ongoing', 'Completed', 'Delayed', 'On Hold', 'At Risk'],
-        'data': [ongoing_count, completed_count, delayed_count, not_started_count, at_risk_count]
+        'labels': ['Ongoing', 'Completed', 'Delayed', 'On Hold'],
+        'data': [ongoing_count, completed_count, delayed_count, not_started_count]
     })
 
     # District distribution for West Bengal
@@ -100,6 +126,15 @@ def api_dashboard(request):
         'delayed_count': projects.filter(status='delayed').count(),
         'not_started_count': projects.filter(status='not_started').count(),
         'at_risk_count': projects.filter(risk_level='high').count(),
+        'status_data': {
+            'labels': ['Ongoing', 'Completed', 'Delayed', 'On Hold'],
+            'data': [
+                projects.filter(status='ongoing').count(),
+                projects.filter(status='completed').count(),
+                projects.filter(status='delayed').count(),
+                projects.filter(status='not_started').count()
+            ]
+        },
         'total_approved_cost': float(projects.aggregate(Sum('approved_cost'))['approved_cost__sum'] or 0),
         'total_expenditure': float(projects.aggregate(Sum('expenditure'))['expenditure__sum'] or 0),
         'avg_progress': round(float(projects.aggregate(Avg('physical_progress'))['physical_progress__avg'] or 0), 1),
@@ -203,8 +238,21 @@ def project_list(request):
     state_districts_map_json = {st: sorted(list(dt_set)) for st, dt_set in state_districts_map.items()}
     districts = sorted(list(all_districts))
 
+    # Optimization & Pagination
+    projects = projects.prefetch_related('milestones', 'alerts').order_by('-updated_at')
+    paginator = Paginator(projects, 12)
+    page = request.GET.get('page')
+    try:
+        page_obj = paginator.page(page)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
     context = {
-        'projects': projects,
+        'projects': page_obj,
+        'page_obj': page_obj,
+        'paginator': paginator,
         'ministries': ministries,
         'states': states,
         'districts': districts,
@@ -229,6 +277,7 @@ def project_detail(request, project_id):
     }
     return render(request, 'project_detail.html', context)
 
+@role_required(['admin', 'ministry_official', 'auditor'])
 def database_manage(request):
     projects = Project.objects.all()
     csv_form = CSVImportForm()
@@ -238,6 +287,7 @@ def database_manage(request):
     }
     return render(request, 'database.html', context)
 
+@role_required(['admin', 'ministry_official'])
 def project_create(request):
     import re
     if request.method == 'POST':
@@ -261,6 +311,7 @@ def project_create(request):
     context = {'form': form, 'action': 'Add New Project'}
     return render(request, 'project_form.html', context)
 
+@role_required(['admin', 'ministry_official', 'field_officer'])
 def project_edit(request, project_id):
     project = get_object_or_404(Project, project_id=project_id)
     if request.method == 'POST':
@@ -276,6 +327,7 @@ def project_edit(request, project_id):
     context = {'form': form, 'action': 'Edit Project', 'project': project}
     return render(request, 'project_form.html', context)
 
+@role_required(['admin', 'ministry_official'])
 def project_delete(request, project_id):
     if request.method == 'POST':
         project = get_object_or_404(Project, project_id=project_id)
@@ -284,7 +336,7 @@ def project_delete(request, project_id):
         return redirect('database_manage')
     return redirect('database_manage')
 
-@login_required
+@role_required(['admin', 'ministry_official', 'field_officer'])
 def milestone_create(request, project_id):
     project = get_object_or_404(Project, project_id=project_id)
     if request.method == 'POST':
@@ -583,17 +635,74 @@ def search_api(request):
 
 def login_view(request):
     if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-            user = authenticate(username=username, password=password)
-            if user is not None:
-                login(request, user)
-                return redirect('dashboard')
-    else:
-        form = AuthenticationForm()
-    return render(request, 'login.html', {'form': form})
+        identifier = request.POST.get('username') or request.POST.get('phone', '')
+        password = request.POST.get('password', '')
+        
+        if identifier:
+            is_locked, lock_msg = check_lockout(identifier)
+            if is_locked:
+                messages.error(request, lock_msg)
+                return render(request, 'login.html')
+            
+        user = authenticate(username=identifier, password=password)
+        if user is not None:
+            if identifier:
+                reset_failed_attempts(identifier)
+            login(request, user)
+            return redirect('dashboard')
+        else:
+            if identifier:
+                failed_cnt = record_failed_attempt(identifier)
+                if failed_cnt >= 5:
+                    messages.error(request, "Account locked due to 5 consecutive failed login attempts. Please try again after 15 minutes.")
+                else:
+                    messages.error(request, f"Invalid phone number or password. Attempt {failed_cnt} of 5.")
+            else:
+                messages.error(request, "Please enter both phone number and password.")
+    return render(request, 'login.html')
+
+def admin_login_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '').strip()
+        totp_code = request.POST.get('totp_code', '').strip()
+
+        if not username or not password:
+            messages.error(request, "Please enter admin username and password.")
+            return render(request, 'admin_login.html')
+
+        is_locked, lock_msg = check_lockout(username)
+        if is_locked:
+            messages.error(request, lock_msg)
+            return render(request, 'admin_login.html')
+
+        user = authenticate(username=username, password=password)
+        if user is not None:
+            profile = getattr(user, 'profile', None)
+            role = profile.role if profile else ('admin' if user.is_superuser else 'public_viewer')
+            
+            if not user.is_staff and not user.is_superuser and role != 'admin':
+                messages.error(request, "Access Denied: Only Administrator accounts are permitted via this portal.")
+                record_failed_attempt(username)
+                return render(request, 'admin_login.html')
+
+            if profile and profile.mfa_enabled:
+                if not totp_code or len(totp_code) != 6:
+                    messages.error(request, "Multi-Factor Authentication (MFA) required. Enter a valid 6-digit TOTP code.")
+                    return render(request, 'admin_login.html')
+
+            reset_failed_attempts(username)
+            login(request, user)
+            messages.success(request, f"Welcome back Admin {user.username}!")
+            return redirect('database_manage')
+        else:
+            failed_cnt = record_failed_attempt(username)
+            if failed_cnt >= 5:
+                messages.error(request, "Account locked due to 5 failed login attempts. Please try again after 15 minutes.")
+            else:
+                messages.error(request, f"Invalid administrator credentials or access denied. Attempt {failed_cnt} of 5.")
+    return render(request, 'admin_login.html')
+
 
 def logout_view(request):
     logout(request)

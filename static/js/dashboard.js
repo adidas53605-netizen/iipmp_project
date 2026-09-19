@@ -26,8 +26,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Helper data extractors with defaults matching exact prompt spec
     const statusObj = (window.statusData && window.statusData.labels) ? window.statusData : {
-        labels: ['Ongoing', 'Completed', 'Delayed', 'On Hold', 'New Added', 'At Risk'],
-        data: [25, 4, 15, 5, 2, 3]
+        labels: ['Ongoing', 'Completed', 'Delayed', 'On Hold'],
+        data: [25, 4, 15, 5]
     };
 
     const progressObj = (window.progressData && window.progressData.labels) ? window.progressData : {

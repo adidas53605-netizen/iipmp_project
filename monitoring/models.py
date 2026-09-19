@@ -37,22 +37,22 @@ SEVERITY_CHOICES = [
 ]
 
 class Project(models.Model):
-    project_id = models.CharField(max_length=20, unique=True)
+    project_id = models.CharField(max_length=20, unique=True, db_index=True)
     name = models.CharField(max_length=300)
-    ministry = models.CharField(max_length=200)
+    ministry = models.CharField(max_length=200, db_index=True)
     department = models.CharField(max_length=200, blank=True, default='')
-    state = models.CharField(max_length=100)
-    district = models.CharField(max_length=100, blank=True, default='')
+    state = models.CharField(max_length=100, db_index=True)
+    district = models.CharField(max_length=100, blank=True, default='', db_index=True)
     implementing_agency = models.CharField(max_length=300)
     approved_cost = models.DecimalField(max_digits=12, decimal_places=2)
     revised_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     expenditure = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     start_date = models.DateField()
-    expected_completion = models.DateField()
+    expected_completion = models.DateField(db_index=True)
     physical_progress = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     financial_progress = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_started')
-    risk_level = models.CharField(max_length=10, choices=RISK_CHOICES, default='low')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_started', db_index=True)
+    risk_level = models.CharField(max_length=10, choices=RISK_CHOICES, default='low', db_index=True)
     description = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -108,6 +108,11 @@ class Project(models.Model):
 
     class Meta:
         ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['state', 'district']),
+            models.Index(fields=['status', 'risk_level']),
+            models.Index(fields=['ministry', 'status']),
+        ]
 
 class Milestone(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='milestones')
@@ -136,3 +141,34 @@ class Alert(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+from django.contrib.auth.models import User
+
+ROLE_CHOICES = [
+    ('admin', 'Admin'),
+    ('ministry_official', 'Ministry Official'),
+    ('field_officer', 'Field Officer'),
+    ('auditor', 'Auditor'),
+    ('public_viewer', 'Public Viewer'),
+]
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='public_viewer')
+    phone = models.CharField(max_length=20, blank=True, default='')
+    mfa_enabled = models.BooleanField(default=False)
+    totp_secret = models.CharField(max_length=64, blank=True, default='')
+
+    def __str__(self):
+        return f'{self.user.username} ({self.get_role_display()})'
+
+class FailedLoginAttempt(models.Model):
+    identifier = models.CharField(max_length=150, db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    failed_count = models.IntegerField(default=0)
+    last_failed_at = models.DateTimeField(auto_now=True)
+    locked_until = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.identifier}: {self.failed_count} failures'
+
