@@ -203,7 +203,7 @@
             </div>
 
             <!-- Inline Error Alert -->
-            <div id="authErrorAlert" class="alert alert-danger border-danger shadow-sm rounded-3 py-2 px-3 mb-3 d-none">
+            <div id="authErrorAlert" class="alert alert-danger alert-permanent border-danger shadow-sm rounded-3 py-2 px-3 mb-3 d-none">
                 <div class="d-flex align-items-center gap-2">
                     <i class="fa-solid fa-circle-exclamation text-danger fs-5"></i>
                     <span id="authErrorMessage" class="small fw-semibold">Error message details</span>
@@ -345,7 +345,7 @@
             <!-- ========================================================= -->
             <div id="otpSection" class="{% if not show_otp %}d-none{% endif %}">
                 <!-- Prominent Demo Mode OTP Banner -->
-                <div class="alert alert-warning border-warning shadow-sm rounded-3 p-3 mb-4" id="demoOtpBannerContainer" style="background-color: #FEF3C7; border-color: #F59E0B !important;">
+                <div class="alert alert-warning alert-permanent border-warning shadow-sm rounded-3 p-3 mb-4" id="demoOtpBannerContainer" style="background-color: #FEF3C7; border-color: #F59E0B !important;">
                     <div class="d-flex align-items-center gap-2 mb-2">
                         <span class="badge bg-danger text-white fw-bold px-2 py-1" style="font-size: 0.75rem;">DEMO MODE</span>
                         <span class="fw-bold text-dark small">SMS Integration Pending</span>
@@ -468,12 +468,12 @@
     ];
 
     function getUsersDB() {
-        let dbStr = localStorage.getItem('iipmp_users_db');
-        if (!dbStr) {
-            localStorage.setItem('iipmp_users_db', JSON.stringify(SEEDED_USERS));
-            return SEEDED_USERS;
-        }
         try {
+            let dbStr = localStorage.getItem('iipmp_users_db');
+            if (!dbStr) {
+                localStorage.setItem('iipmp_users_db', JSON.stringify(SEEDED_USERS));
+                return SEEDED_USERS;
+            }
             const parsed = JSON.parse(dbStr);
             // Ensure seeded users exist in DB
             SEEDED_USERS.forEach(s => {
@@ -484,16 +484,20 @@
             localStorage.setItem('iipmp_users_db', JSON.stringify(parsed));
             return parsed;
         } catch(e) {
-            localStorage.setItem('iipmp_users_db', JSON.stringify(SEEDED_USERS));
+            console.warn('[IIPMP] localStorage access failed or restricted:', e);
             return SEEDED_USERS;
         }
     }
 
     function saveUsersDB(users) {
-        localStorage.setItem('iipmp_users_db', JSON.stringify(users));
+        try {
+            localStorage.setItem('iipmp_users_db', JSON.stringify(users));
+        } catch(e) {
+            console.warn('[IIPMP] Unable to save to localStorage:', e);
+        }
     }
 
-    // Initialize DB on load
+    // Initialize DB on load safely
     getUsersDB();
 
     // =========================================================
@@ -888,7 +892,17 @@
         if (loginForm) loginForm.classList.add('d-none');
         if (regForm) regForm.classList.add('d-none');
         if (modeTabs) modeTabs.classList.add('d-none');
-        if (otpSection) otpSection.classList.remove('d-none');
+        if (otpSection) {
+            otpSection.classList.remove('d-none');
+            otpSection.style.display = 'block';
+        }
+
+        const demoBanner = document.getElementById('demoOtpBannerContainer');
+        if (demoBanner) {
+            demoBanner.classList.remove('d-none');
+            demoBanner.style.display = 'block';
+            demoBanner.style.opacity = '1';
+        }
 
         const targetPhoneEl = document.getElementById('otpTargetPhoneDisplay');
         const demoCodeEl = document.getElementById('demoOtpCodeDisplay');

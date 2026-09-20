@@ -144,17 +144,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // 7. Auto-hide Django Messages Alerts
-    const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
+    // 7. Auto-hide Django Messages Alerts (excluding permanent alerts and login OTP banners)
+    const alerts = document.querySelectorAll('.django-messages .alert:not(.alert-permanent), .alert-dismissible:not(.alert-permanent)');
     if (alerts.length > 0) {
         setTimeout(() => {
             alerts.forEach(alert => {
-                // Check if bootstrap is available globally
+                // Do not auto-hide alerts inside OTP section or login form
+                if (alert.closest('#otpSection') || alert.closest('#loginForm') || alert.classList.contains('alert-permanent')) {
+                    return;
+                }
                 if (typeof bootstrap !== 'undefined' && bootstrap.Alert) {
                     const bsAlert = new bootstrap.Alert(alert);
                     bsAlert.close();
                 } else {
-                    // Fallback fade out
                     alert.style.transition = 'opacity 0.5s ease';
                     alert.style.opacity = '0';
                     setTimeout(() => alert.remove(), 500);
