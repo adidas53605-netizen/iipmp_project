@@ -344,13 +344,20 @@
             <!-- MODE 3: OTP VERIFICATION STEP                            -->
             <!-- ========================================================= -->
             <div id="otpSection" class="{% if not show_otp %}d-none{% endif %}">
-                <div class="alert alert-warning border-warning shadow-sm rounded-3 py-2.5 px-3 mb-3">
-                    <div class="d-flex align-items-start gap-2">
-                        <i class="fa-solid fa-mobile-screen-button text-warning fs-5 mt-1"></i>
-                        <div class="w-100">
-                            <span class="fw-bold d-block text-dark mb-1">Demo Mode: Your OTP is <span id="demoOtpCodeDisplay" class="text-danger font-monospace fs-5 fw-bold">{{ otp_code|default:'123456' }}</span> (SMS integration pending)</span>
-                            <span class="small text-muted d-block">A 6-digit OTP has been generated for <strong id="otpTargetPhoneDisplay">{{ otp_phone|default:'' }}</strong>. Please type the 6-digit code in the input box below:</span>
+                <!-- Prominent Demo Mode OTP Banner -->
+                <div class="alert alert-warning border-warning shadow-sm rounded-3 p-3 mb-4" id="demoOtpBannerContainer" style="background-color: #FEF3C7; border-color: #F59E0B !important;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-danger text-white fw-bold px-2 py-1" style="font-size: 0.75rem;">DEMO MODE</span>
+                        <span class="fw-bold text-dark small">SMS Integration Pending</span>
+                    </div>
+                    <div class="p-3 bg-white rounded-3 border border-warning text-center shadow-sm">
+                        <span class="small text-muted fw-bold d-block mb-1">Your 6-Digit Verification OTP Code:</span>
+                        <div class="font-monospace fs-2 fw-bold text-danger my-1" id="demoOtpCodeDisplay" style="letter-spacing: 4px;">
+                            {{ otp_code|default:'123456' }}
                         </div>
+                        <span class="small text-secondary d-block mt-1" style="font-size: 0.78rem;">
+                            (Generated for <strong id="otpTargetPhoneDisplay">{{ otp_phone|default:'' }}</strong>. Please type this code in the input box below to verify.)
+                        </span>
                     </div>
                 </div>
 
@@ -358,7 +365,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="step" value="verify_otp">
                     <div class="mb-3">
-                        <label for="otpInput" class="form-label">Enter 6-Digit OTP <span class="text-danger">*</span></label>
+                        <label for="otpInput" class="form-label text-navy fw-bold">Enter 6-Digit OTP <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fa-solid fa-key"></i></span>
                             <input type="text" class="form-control font-monospace text-center fs-5" id="otpInput" name="otp_code" placeholder="6-digit code" maxlength="6" required autocomplete="off">
