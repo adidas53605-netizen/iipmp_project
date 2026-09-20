@@ -346,8 +346,8 @@
                     <div class="d-flex align-items-start gap-2">
                         <i class="fa-solid fa-mobile-screen-button text-warning fs-5 mt-1"></i>
                         <div>
-                            <span class="fw-bold d-block text-dark">Demo OTP — SMS integration pending</span>
-                            <span class="small text-muted">A 6-digit OTP has been sent to <strong id="otpTargetPhoneDisplay"></strong>.</span>
+                            <span class="fw-bold d-block text-dark">Demo Mode — SMS Integration Pending</span>
+                            <span class="small text-muted">A 6-digit OTP has been generated for <strong id="otpTargetPhoneDisplay"></strong>. Please type the code below:</span>
                             <div class="mt-2 p-2 bg-white rounded border border-warning font-monospace text-center fs-5 fw-bold text-navy" id="demoOtpBanner">
                                 OTP: <span id="demoOtpCodeDisplay" class="text-danger">123456</span>
                             </div>
@@ -891,8 +891,8 @@
         if (demoCodeEl) demoCodeEl.textContent = otpCode;
         if (attemptsEl) attemptsEl.textContent = '3/3';
         if (otpInput) {
-            otpInput.value = otpCode;
-            otpInput.select();
+            otpInput.value = '';
+            otpInput.focus();
         }
 
         startOtpTimer();
@@ -934,7 +934,10 @@
             }
 
             showError(`Incorrect OTP code. ${currentOtpState.attemptsLeft} attempt(s) remaining.`);
-            if (otpInput) otpInput.value = '';
+            if (otpInput) {
+                otpInput.value = '';
+                otpInput.focus();
+            }
             return false;
         }
 
@@ -972,7 +975,10 @@
 
         if (demoCodeEl) demoCodeEl.textContent = newOtp;
         if (attemptsEl) attemptsEl.textContent = '3/3';
-        if (otpInput) otpInput.value = '';
+        if (otpInput) {
+            otpInput.value = '';
+            otpInput.focus();
+        }
 
         startOtpTimer();
         startResendCooldown();
