@@ -193,7 +193,7 @@
         <div class="card-body p-4">
 
             <!-- Mode Tabs (Login / Register) -->
-            <div class="mode-nav-tabs">
+            <div class="mode-nav-tabs {% if show_otp %}d-none{% endif %}">
                 <button type="button" class="nav-link active" id="tab-login-btn" onclick="switchMode('login')">
                     <i class="fa-solid fa-right-to-bracket me-1"></i>Login
                 </button>
@@ -213,14 +213,15 @@
             <!-- ========================================================= -->
             <!-- MODE 1: LOGIN FORM                                       -->
             <!-- ========================================================= -->
-            <form id="loginForm" method="POST" action="{% url 'login' %}" onsubmit="return handleLoginSubmit(event)">
+            <form id="loginForm" method="POST" action="{% url 'login' %}" onsubmit="return handleLoginSubmit(event)" class="{% if show_otp %}d-none{% endif %}">
                 {% csrf_token %}
+                <input type="hidden" name="step" value="password">
                 <!-- Phone Number -->
                 <div class="mb-3">
                     <label for="loginPhone" class="form-label">Phone Number <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
-                        <input type="tel" class="form-control font-monospace" id="loginPhone" name="phone" placeholder="Enter 10-digit mobile number" maxlength="10" required autocomplete="tel">
+                        <input type="tel" class="form-control font-monospace" id="loginPhone" name="phone" value="{{ otp_phone|default:'' }}" placeholder="Enter 10-digit mobile number" maxlength="10" required autocomplete="tel">
                     </div>
                 </div>
 
@@ -263,6 +264,7 @@
             <!-- ========================================================= -->
             <form id="registerForm" method="POST" action="{% url 'login' %}" onsubmit="return handleRegisterSubmit(event)" class="d-none">
                 {% csrf_token %}
+                <input type="hidden" name="step" value="password">
                 <!-- Full Name -->
                 <div class="mb-3">
                     <label for="regName" class="form-label">Full Name <span class="text-danger">*</span></label>
@@ -341,30 +343,29 @@
             <!-- ========================================================= -->
             <!-- MODE 3: OTP VERIFICATION STEP                            -->
             <!-- ========================================================= -->
-            <div id="otpSection" class="d-none">
-                <div class="alert alert-warning border-warning shadow-sm rounded-3 py-2 px-3 mb-3">
+            <div id="otpSection" class="{% if not show_otp %}d-none{% endif %}">
+                <div class="alert alert-warning border-warning shadow-sm rounded-3 py-2.5 px-3 mb-3">
                     <div class="d-flex align-items-start gap-2">
                         <i class="fa-solid fa-mobile-screen-button text-warning fs-5 mt-1"></i>
-                        <div>
-                            <span class="fw-bold d-block text-dark">Demo Mode — SMS Integration Pending</span>
-                            <span class="small text-muted">A 6-digit OTP has been generated for <strong id="otpTargetPhoneDisplay"></strong>. Please type the code below:</span>
-                            <div class="mt-2 p-2 bg-white rounded border border-warning font-monospace text-center fs-5 fw-bold text-navy" id="demoOtpBanner">
-                                OTP: <span id="demoOtpCodeDisplay" class="text-danger">123456</span>
-                            </div>
+                        <div class="w-100">
+                            <span class="fw-bold d-block text-dark mb-1">Demo Mode: Your OTP is <span id="demoOtpCodeDisplay" class="text-danger font-monospace fs-5 fw-bold">{{ otp_code|default:'123456' }}</span> (SMS integration pending)</span>
+                            <span class="small text-muted d-block">A 6-digit OTP has been generated for <strong id="otpTargetPhoneDisplay">{{ otp_phone|default:'' }}</strong>. Please type the 6-digit code in the input box below:</span>
                         </div>
                     </div>
                 </div>
 
-                <form id="otpForm" onsubmit="return handleOtpSubmit(event)">
+                <form id="otpForm" method="POST" action="{% url 'login' %}" onsubmit="return handleOtpSubmit(event)">
+                    {% csrf_token %}
+                    <input type="hidden" name="step" value="verify_otp">
                     <div class="mb-3">
                         <label for="otpInput" class="form-label">Enter 6-Digit OTP <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fa-solid fa-key"></i></span>
-                            <input type="text" class="form-control font-monospace text-center fs-5" id="otpInput" placeholder="6-digit code" maxlength="6" required autocomplete="one-time-code">
+                            <input type="text" class="form-control font-monospace text-center fs-5" id="otpInput" name="otp_code" placeholder="6-digit code" maxlength="6" required autocomplete="off">
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
                             <span>Valid for: <strong id="otpTimerDisplay" class="text-danger">05:00</strong></span>
-                            <span>Attempts left: <strong id="otpAttemptsDisplay" class="text-dark">3/3</strong></span>
+                            <span>Attempts left: <strong id="otpAttemptsDisplay" class="text-dark">{{ otp_attempts|default:'3' }}/3</strong></span>
                         </div>
                     </div>
 
@@ -859,9 +860,9 @@
         }, 1000);
     }
 
-    function initiateOtpStep(phone, pendingUser, context) {
+    function initiateOtpStep(phone, pendingUser, context, overrideCode) {
         clearError();
-        const otpCode = String(Math.floor(100000 + Math.random() * 900000)); // 6-digit OTP
+        const otpCode = overrideCode || String(Math.floor(100000 + Math.random() * 900000)); // 6-digit OTP
 
         currentOtpState = {
             code: otpCode,
@@ -1025,6 +1026,14 @@
                 el.addEventListener('input', clearError);
             }
         });
+
+        {% if show_otp %}
+        const serverOtpCode = "{{ otp_code|escapejs }}";
+        const serverOtpPhone = "{{ otp_phone|escapejs }}";
+        if (serverOtpCode) {
+            initiateOtpStep(serverOtpPhone, { name: "Project Officer", phone: serverOtpPhone }, 'login', serverOtpCode);
+        }
+        {% endif %}
     });
 </script>
 {% endblock %}

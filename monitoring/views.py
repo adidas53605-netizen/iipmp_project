@@ -1,5 +1,6 @@
 import json
 import csv
+import random
 from io import StringIO
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -665,7 +666,67 @@ def login_view(request):
         return redirect('dashboard')
 
     if request.method == 'POST':
+        step = request.POST.get('step', '')
         ip_addr = get_client_ip(request)
+
+        # ----------------------------------------------------
+        # STEP 2: OTP VERIFICATION STEP (POST)
+        # ----------------------------------------------------
+        if step == 'verify_otp' or 'otp_code' in request.POST:
+            entered_otp = request.POST.get('otp_code', '').strip()
+            pending_code = request.session.get('pending_otp_code')
+            pending_expires = request.session.get('pending_otp_expires', 0)
+            pending_user_id = request.session.get('pending_user_id')
+            pending_phone = request.session.get('pending_otp_phone', '')
+            attempts_left = request.session.get('pending_otp_attempts', 3)
+
+            if not pending_code or not pending_user_id:
+                messages.error(request, "OTP session expired. Please restart login.")
+                return render(request, 'login.html')
+
+            if timezone.now().timestamp() > pending_expires:
+                messages.error(request, "OTP expired after 5 minutes. Please click Resend OTP.")
+                context = {
+                    'show_otp': True,
+                    'otp_phone': pending_phone,
+                    'otp_code': pending_code,
+                    'otp_attempts': attempts_left,
+                }
+                return render(request, 'login.html', context)
+
+            if entered_otp != pending_code:
+                attempts_left -= 1
+                request.session['pending_otp_attempts'] = attempts_left
+                if attempts_left <= 0:
+                    for key in ['pending_otp_code', 'pending_otp_expires', 'pending_user_id', 'pending_otp_phone', 'pending_otp_attempts']:
+                        request.session.pop(key, None)
+                    messages.error(request, "OTP invalidated due to 3 incorrect attempts. Please restart login.")
+                    return render(request, 'login.html')
+                else:
+                    messages.error(request, f"Incorrect OTP code. {attempts_left} attempt(s) remaining.")
+                    context = {
+                        'show_otp': True,
+                        'otp_phone': pending_phone,
+                        'otp_code': pending_code,
+                        'otp_attempts': attempts_left,
+                    }
+                    return render(request, 'login.html', context)
+
+            # Correct OTP -> Authenticate User & Redirect to Dashboard
+            user_obj = User.objects.filter(id=pending_user_id).first()
+            if user_obj:
+                for key in ['pending_otp_code', 'pending_otp_expires', 'pending_user_id', 'pending_otp_phone', 'pending_otp_attempts']:
+                    request.session.pop(key, None)
+                reset_failed_attempts(pending_phone)
+                login(request, user_obj)
+                return redirect('dashboard')
+            else:
+                messages.error(request, "User account not found. Please restart login.")
+                return render(request, 'login.html')
+
+        # ----------------------------------------------------
+        # STEP 1: PHONE + PASSWORD VERIFICATION STEP (POST)
+        # ----------------------------------------------------
         is_limited, limit_msg = check_rate_limit(ip_addr)
         if is_limited:
             messages.error(request, limit_msg)
@@ -673,29 +734,39 @@ def login_view(request):
 
         identifier = request.POST.get('username') or request.POST.get('phone', '')
         password = request.POST.get('password', '')
-        
+
         if identifier:
             is_locked, lock_msg = check_lockout(identifier, ip_addr)
             if is_locked:
                 messages.error(request, lock_msg)
                 return render(request, 'login.html')
-            
+
         user = authenticate(username=identifier, password=password)
+        if user is None and identifier:
+            user_obj = User.objects.filter(username=identifier).first()
+            if not user_obj and len(identifier) == 10 and identifier.isdigit() and password:
+                user_obj = User.objects.create_user(username=identifier, password=password)
+                UserProfile.objects.get_or_create(user=user_obj, defaults={'role': 'field_officer'})
+                user = user_obj
+
         if user is not None:
-            if identifier:
-                reset_failed_attempts(identifier)
-            login(request, user)
-            return redirect('dashboard')
+            # Credentials valid -> Generate 6-digit OTP and show OTP step
+            otp_code = f"{random.randint(100000, 999999)}"
+            request.session['pending_otp_code'] = otp_code
+            request.session['pending_otp_phone'] = identifier
+            request.session['pending_user_id'] = user.id
+            request.session['pending_otp_attempts'] = 3
+            request.session['pending_otp_expires'] = (timezone.now() + timedelta(minutes=5)).timestamp()
+
+            context = {
+                'show_otp': True,
+                'otp_phone': identifier,
+                'otp_code': otp_code,
+                'otp_attempts': 3,
+            }
+            return render(request, 'login.html', context)
         else:
             if identifier:
-                user_obj = User.objects.filter(username=identifier).first()
-                if not user_obj and len(identifier) == 10 and identifier.isdigit() and password:
-                    user_obj = User.objects.create_user(username=identifier, password=password)
-                    UserProfile.objects.get_or_create(user=user_obj, defaults={'role': 'field_officer'})
-                    reset_failed_attempts(identifier)
-                    login(request, user_obj)
-                    return redirect('dashboard')
-
                 failed_cnt = record_failed_attempt(identifier, ip_addr)
                 if failed_cnt >= 5:
                     messages.error(request, "Account locked due to 5 consecutive failed login attempts. Please try again after 15 minutes.")

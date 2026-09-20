@@ -48,6 +48,24 @@ class SecurityTestCase(TestCase):
         self.assertEqual(attempt.failed_count, 5)
         self.assertIsNotNone(attempt.locked_until)
 
+    def test_otp_verification_flow(self):
+        login_url = reverse('login')
+        # 1. Valid password -> Should render OTP step context with show_otp=True
+        response = self.client.post(login_url, {'username': 'officer1', 'password': 'Password@123', 'step': 'password'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['show_otp'])
+        otp_code = response.context['otp_code']
+        self.assertEqual(len(otp_code), 6)
+
+        # 2. Invalid OTP -> Should display error message
+        resp_wrong = self.client.post(login_url, {'step': 'verify_otp', 'otp_code': '000000'})
+        self.assertEqual(resp_wrong.status_code, 200)
+        self.assertContains(resp_wrong, "Incorrect OTP code")
+
+        # 3. Correct OTP -> Should log in and redirect to dashboard
+        resp_correct = self.client.post(login_url, {'step': 'verify_otp', 'otp_code': otp_code})
+        self.assertRedirects(resp_correct, reverse('dashboard'))
+
     def test_rbac_access_control(self):
         # Field officer trying to access project create page should be denied (403)
         self.client.login(username='officer1', password='Password@123')
