@@ -95,24 +95,24 @@ document.addEventListener('DOMContentLoaded', function() {
             plugins: [{
                 id: 'centerText',
                 beforeDraw: function(chart) {
-                    const width = chart.width, height = chart.height, ctx = chart.ctx;
-                    ctx.restore();
-                    const fontSize = (height / 114).toFixed(2);
-                    ctx.font = "bold " + fontSize + "em Inter";
-                    ctx.textBaseline = "middle";
-                    ctx.fillStyle = "#003366";
-                    const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                    const text = total.toString() + " Total";
-                    const textX = Math.round((width - ctx.measureText(text).width) / 2);
-                    const textY = chart.chartArea.top + (chart.chartArea.bottom - chart.chartArea.top) / 2;
-                    ctx.fillText(text, textX, textY);
-
-                    ctx.font = (fontSize * 0.4).toFixed(2) + "em Inter";
-                    ctx.fillStyle = "#6C757D";
-                    const subText = "Projects Monitored";
-                    const subTextX = Math.round((width - ctx.measureText(subText).width) / 2);
-                    ctx.fillText(subText, subTextX, textY + 22);
+                    const { ctx, chartArea } = chart;
+                    if (!chartArea) return;
                     ctx.save();
+                    const centerX = (chartArea.left + chartArea.right) / 2;
+                    const centerY = (chartArea.top + chartArea.bottom) / 2;
+                    const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+
+                    ctx.font = '800 1.15rem Inter';
+                    ctx.fillStyle = '#003366';
+                    ctx.fillText(total + ' Total', centerX, centerY - 8);
+
+                    ctx.font = '600 0.72rem Inter';
+                    ctx.fillStyle = '#6C757D';
+                    ctx.fillText('Projects Monitored', centerX, centerY + 12);
+                    ctx.restore();
                 }
             }]
         });
