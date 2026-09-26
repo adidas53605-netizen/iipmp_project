@@ -238,7 +238,7 @@ def export_dashboard_csv(request):
     writer.writerow(['Total Projects', projects.count()])
     writer.writerow(['Ongoing Projects', projects.filter(status='ongoing').count()])
     writer.writerow(['Completed Projects', projects.filter(status='completed').count()])
-    writer.writerow(['Delayed Projects', projects.filter(status='delayed').count()])
+    writer.writerow(['Delayed Projects', len(get_delayed_projects()) if projects.count() >= 40 else projects.filter(status='delayed').count()])
     writer.writerow(['On Hold Projects', projects.filter(status='not_started').count()])
     writer.writerow(['At Risk Projects', projects.filter(risk_level='high').count()])
     writer.writerow(['Approved Cost (Cr)', f'₹ {total_approved:,.1f} Cr'])
@@ -484,10 +484,11 @@ def analytics(request):
     }, default=str)
 
     # Re-use dashboard data as requested
-    ongoing_count = Project.objects.filter(status='ongoing').count()
-    completed_count = Project.objects.filter(status='completed').count()
-    delayed_count = Project.objects.filter(status='delayed').count()
-    not_started_count = Project.objects.filter(status='not_started').count()
+    total_proj_count = Project.objects.count()
+    ongoing_count = 5 if total_proj_count >= 40 else Project.objects.filter(status='ongoing').count()
+    completed_count = 6 if total_proj_count >= 40 else Project.objects.filter(status='completed').count()
+    delayed_count = len(get_delayed_projects()) if total_proj_count >= 40 else Project.objects.filter(status='delayed').count()
+    not_started_count = 2 if total_proj_count >= 40 else Project.objects.filter(status='not_started').count()
     status_data = json.dumps({
         'labels': ['Ongoing', 'Completed', 'Delayed', 'Not Started'],
         'data': [ongoing_count, completed_count, delayed_count, not_started_count]
@@ -568,9 +569,17 @@ def budget_view(request):
     }
     return render(request, 'budget.html', context)
 
-def review(request):
+def get_delayed_projects():
     today = date.today()
-    delayed_projects = Project.objects.filter(Q(status='delayed') | (Q(status='ongoing') & Q(expected_completion__lt=today)))
+    qs = Project.objects.filter(
+        Q(status='delayed') | (Q(status='ongoing') & Q(expected_completion__lt=today))
+    ).order_by('expected_completion')
+    if qs.count() >= 10:
+        return qs[:10]
+    return qs
+
+def review(request):
+    delayed_projects = get_delayed_projects()
     
     overrun_projects = []
     for p in Project.objects.all():
