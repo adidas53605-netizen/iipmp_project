@@ -30,8 +30,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Data Objects
     const statusDataObj = window.statusData && window.statusData.labels ? window.statusData : {
-        labels: ['Ongoing','Completed','Delayed','On Hold','New Added','At Risk'],
-        data: [5, 6, 10, 2, 2, 15]
+        labels: ['Ongoing','Completed','Delayed','On Hold'],
+        data: [25, 4, 15, 5]
     };
 
     const progressDataObj = window.progressData && window.progressData.labels ? window.progressData : {
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 labels: statusDataObj.labels,
                 datasets: [{
                     data: statusDataObj.data,
-                    backgroundColor: ['#2196F3','#28A745','#DC3545','#6C757D','#6f42c1','#FFC107'],
+                    backgroundColor: ['#2196F3','#28A745','#DC3545','#6C757D'],
                     borderWidth: 0
                 }]
             },
