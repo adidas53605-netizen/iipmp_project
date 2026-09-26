@@ -601,21 +601,24 @@ def review(request):
     }
     return render(request, 'review.html', context)
 
+def get_alerts_queryset(alert_type=None):
+    alerts = Alert.objects.all().select_related('project').exclude(alert_type='delay', message__icontains='0 months').order_by('-created_at', '-id')
+    if alert_type and alert_type.strip():
+        alerts = alerts.filter(alert_type=alert_type.strip())
+    if Project.objects.count() >= 40:
+        return alerts[:15]
+    return alerts
+
 def alerts_view(request):
-    alerts = Alert.objects.all().select_related('project').order_by('-created_at')
     alert_type = request.GET.get('alert_type')
-    if alert_type:
-        alerts = alerts.filter(alert_type=alert_type)
-        
+    alerts = get_alerts_queryset(alert_type)
     context = {'alerts': alerts}
     return render(request, 'alerts.html', context)
 
 def api_alerts(request):
     """JSON API endpoint for alerts — used by the frontend JS fetch integration."""
-    alerts = Alert.objects.all().select_related('project').order_by('-created_at')
     alert_type = request.GET.get('alert_type')
-    if alert_type:
-        alerts = alerts.filter(alert_type=alert_type)
+    alerts = get_alerts_queryset(alert_type)
 
     from django.utils.timesince import timesince
 

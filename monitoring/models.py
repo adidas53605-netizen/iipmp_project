@@ -72,9 +72,9 @@ class Project(models.Model):
     @property
     def delay_months(self):
         today = date.today()
-        if self.status in ['ongoing', 'delayed'] and self.expected_completion < today:
+        if self.status != 'completed' and self.expected_completion < today:
             diff = today - self.expected_completion
-            return diff.days // 30
+            return max(0, diff.days // 30)
         return 0
 
     @property

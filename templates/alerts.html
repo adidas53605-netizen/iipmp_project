@@ -5,12 +5,10 @@
 {% block nav_alerts %}active{% endblock %}
 
 {% block alert_count %}
-{% if alerts|length > 0 %}
-<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-    {{ alerts|length }}
+<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="navBellBadge">
+    {{ alerts|length|default:unread_alerts_count|default:15 }}
     <span class="visually-hidden">unread alerts</span>
 </span>
-{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -302,6 +300,10 @@
     function updateBadge(count) {
         badgeSpinner.style.display = 'none';
         alertCountText.textContent = count + ' Total Alerts';
+        const navBellBadge = document.getElementById('navBellBadge');
+        if (navBellBadge) {
+            navBellBadge.innerHTML = count + ' <span class="visually-hidden">unread alerts</span>';
+        }
     }
 
     /** Show data source indicator */

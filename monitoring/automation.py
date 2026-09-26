@@ -36,11 +36,20 @@ def detect_delay(project):
     today = date.today()
     is_delayed = project.expected_completion < today and project.status != 'completed'
     delay_months = project.delay_months
-    message = f"Delayed by {delay_months} months" if is_delayed else ""
+    
+    if is_delayed and delay_months == 0:
+        days = (today - project.expected_completion).days
+        if days >= 30:
+            delay_months = days // 30
+        else:
+            is_delayed = False
+
+    is_valid_delay = is_delayed and delay_months > 0
+    message = f"Delayed by {delay_months} month{'s' if delay_months != 1 else ''}" if is_valid_delay else ""
     
     return {
-        'is_delayed': is_delayed,
-        'delay_months': delay_months,
+        'is_delayed': is_valid_delay,
+        'delay_months': delay_months if is_valid_delay else 0,
         'message': message
     }
 
@@ -62,7 +71,7 @@ def generate_alerts(project):
     today = date.today()
     
     delay_info = detect_delay(project)
-    if delay_info['is_delayed']:
+    if delay_info['is_delayed'] and delay_info['delay_months'] > 0:
         Alert.objects.create(
             project=project,
             alert_type='delay',

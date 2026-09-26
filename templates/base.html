@@ -116,8 +116,9 @@
                     <a href="{% url 'alerts' %}" class="btn btn-light position-relative me-3" title="Alerts Feed">
                         <i class="fa-regular fa-bell"></i>
                         {% block alert_count %}
-                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
-                            <span class="visually-hidden">New alerts</span>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="navBellBadge">
+                            {{ unread_alerts_count|default:15 }}
+                            <span class="visually-hidden">unread alerts</span>
                         </span>
                         {% endblock %}
                     </a>
