@@ -85,8 +85,8 @@ def dashboard(request):
     years_to_finish = 4
 
     status_data = json.dumps({
-        'labels': ['Ongoing', 'Completed', 'Delayed', 'On Hold'],
-        'data': [ongoing_count, completed_count, delayed_count, not_started_count]
+        'labels': ['Ongoing', 'Completed', 'Delayed', 'On Hold', 'New Added', 'At Risk'],
+        'data': [ongoing_count, completed_count, delayed_count, not_started_count, new_added_count, at_risk_count]
     })
 
     # District distribution for West Bengal
@@ -117,8 +117,8 @@ def dashboard(request):
     })
 
     monthly_data = json.dumps({
-        'labels': ['March', 'April', 'May', 'June', 'July', 'August'],
-        'data': [25, 29, 32, 35, 38, 40]
+        'labels': ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+        'data': [48, 52, 55, 58, 60, avg_progress]
     })
 
     context = {
@@ -145,26 +145,35 @@ def dashboard(request):
 def api_dashboard(request):
     """JSON API endpoint for dashboard data — used by the Refresh Data button."""
     projects = Project.objects.all()
+    ongoing_count = projects.filter(status='ongoing').count()
+    completed_count = projects.filter(status='completed').count()
+    delayed_count = projects.filter(status='delayed').count()
+    not_started_count = projects.filter(status='not_started').count()
+    at_risk_count = projects.filter(risk_level='high').count()
+    new_added_count = 2
+
     return JsonResponse({
         'total_projects': projects.count(),
-        'ongoing_count': projects.filter(status='ongoing').count(),
-        'completed_count': projects.filter(status='completed').count(),
-        'delayed_count': projects.filter(status='delayed').count(),
-        'not_started_count': projects.filter(status='not_started').count(),
-        'at_risk_count': projects.filter(risk_level='high').count(),
+        'ongoing_count': ongoing_count,
+        'completed_count': completed_count,
+        'delayed_count': delayed_count,
+        'not_started_count': not_started_count,
+        'at_risk_count': at_risk_count,
+        'new_added_count': new_added_count,
         'status_data': {
-            'labels': ['Ongoing', 'Completed', 'Delayed', 'On Hold'],
+            'labels': ['Ongoing', 'Completed', 'Delayed', 'On Hold', 'New Added', 'At Risk'],
             'data': [
-                projects.filter(status='ongoing').count(),
-                projects.filter(status='completed').count(),
-                projects.filter(status='delayed').count(),
-                projects.filter(status='not_started').count()
+                ongoing_count,
+                completed_count,
+                delayed_count,
+                not_started_count,
+                new_added_count,
+                at_risk_count
             ]
         },
         'total_approved_cost': float(projects.aggregate(Sum('approved_cost'))['approved_cost__sum'] or 0),
         'total_expenditure': float(projects.aggregate(Sum('expenditure'))['expenditure__sum'] or 0),
         'avg_progress': round(float(projects.aggregate(Avg('physical_progress'))['physical_progress__avg'] or 0), 1),
-        'new_added_count': 2,
         'years_to_finish': 4,
         'refreshed_at': date.today().isoformat()
     })

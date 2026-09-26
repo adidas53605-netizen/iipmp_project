@@ -1,103 +1,92 @@
 /**
- * IIPMP Dashboard — Chart.js Visualizations, Sidebar, Refresh & Export Handlers
+ * IIPMP Dashboard — Chart.js Visualizations & Interactivity
  * Integrated Infrastructure Project Monitoring Portal
  */
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function() {
 
-    // ========================================================
-    //  GUARD: Ensure Chart.js is loaded
-    // ========================================================
+    // Sidebar Toggle Functionality
+    const sidebar = document.getElementById('dashSidebar');
+    const toggleBtn = document.getElementById('sidebarToggle');
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+            localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('collapsed'));
+        });
+        if (localStorage.getItem('sidebar_collapsed') === 'true' && window.innerWidth >= 992) {
+            sidebar.classList.add('collapsed');
+        }
+    }
+
     if (typeof Chart === 'undefined') {
-        console.warn('[IIPMP] Chart.js is not loaded — skipping chart init.');
+        console.warn('Chart.js is not loaded.');
         return;
     }
 
-    // ========================================================
-    //  Chart.js Global Defaults
-    // ========================================================
     Chart.defaults.font.family = "'Inter', sans-serif";
-    Chart.defaults.font.size = 12;
+    Chart.defaults.font.size = 13;
     Chart.defaults.plugins.legend.labels.usePointStyle = true;
-    Chart.defaults.plugins.legend.labels.padding = 14;
-    Chart.defaults.color = '#64748B';
-    Chart.defaults.animation.duration = 900;
-    Chart.defaults.animation.easing = 'easeOutQuart';
+    Chart.defaults.color = '#6C757D';
 
-    // Helper data extractors with defaults matching exact prompt spec
-    const statusObj = (window.statusData && window.statusData.labels) ? window.statusData : {
-        labels: ['Ongoing', 'Completed', 'Delayed', 'On Hold'],
-        data: [25, 4, 15, 5]
+    // Data Objects
+    const statusDataObj = window.statusData && window.statusData.labels ? window.statusData : {
+        labels: ['Ongoing','Completed','Delayed','On Hold','New Added','At Risk'],
+        data: [5, 6, 10, 2, 2, 15]
     };
 
-    const progressObj = (window.progressData && window.progressData.labels) ? window.progressData : {
-        labels: ['Kolkata Metro Rail', 'NH-17 Widening', 'Smart City Hub', 'Port Terminal', 'Solar Grid', 'Water Pipeline'],
-        data: [78, 65, 85, 42, 55, 30]
+    const progressDataObj = window.progressData && window.progressData.labels ? window.progressData : {
+        labels: ['Syama Prasad Mookerjee Port Mod.','SSKM Super Specialty Wing','Purulia Pumped Storage Project','Kalyani AIIMS Campus Expansion','New Town Salt Lake Sector V Hub','Burdwan Railway Overbridge'],
+        data: [92, 89, 87, 85, 83, 80]
     };
 
-    const costObj = (window.costData && window.costData.labels) ? window.costData : {
-        labels: ['Kolkata Metro Rail', 'NH-17', 'Smart City', 'Port', 'Solar Grid'],
-        approved: [4200, 3500, 2800, 2100, 1800],
-        revised: [4500, 3500, 3100, 2100, 1950],
-        expenditure: [3150, 2450, 1960, 1470, 1170]
+    const costDataObj = window.costData && window.costData.labels ? window.costData : {
+        labels: ['SP Mookerjee Port','SSKM Hospital','Purulia Storage','Kalyani AIIMS','New Town Hub'],
+        approved: [15200,4200,9800,6100,3600],
+        revised: [16500,4200,10400,6100,3900],
+        expenditure: [11200,3100,7200,3800,2100]
     };
 
-    const stateObj = (window.stateData && window.stateData.labels) ? window.stateData : {
-        labels: ['Kolkata', 'South 24 Parganas', 'North 24 Parganas', 'Darjeeling', 'Howrah', 'Murshidabad'],
-        data: [22, 14, 11, 8, 6, 4]
+    const stateDataObj = window.stateData && window.stateData.labels ? window.stateData : {
+        labels: ['Darjeeling','Kolkata','North 24 Parganas','Hooghly','Paschim Medinipur','Bankura'],
+        data: [14,9,7,6,5,4]
     };
 
-    const ministryObj = (window.ministryData && window.ministryData.labels) ? window.ministryData : {
-        labels: ['Road Transport', 'Railways', 'Power', 'Ports & Shipping', 'Urban Affairs'],
-        data: [28, 22, 16, 12, 8]
+    const ministryDataObj = window.ministryData && window.ministryData.labels ? window.ministryData : {
+        labels: ['Railways','Road Transport','Power','Health','Water Resources'],
+        data: [11,9,8,7,5]
     };
 
-    const monthlyObj = (window.monthlyData && window.monthlyData.labels) ? window.monthlyData : {
-        labels: ['March', 'April', 'May', 'June', 'July', 'August'],
-        data: [41, 48, 54, 59, 63, 68]
+    const monthlyDataObj = window.monthlyData && window.monthlyData.labels ? window.monthlyData : {
+        labels: ['Mar','Apr','May','Jun','Jul','Aug'],
+        data: [48,52,55,58,60,61.3]
     };
 
-    // ========================================================
-    //  1. STATUS DISTRIBUTION — Doughnut Chart
-    // ========================================================
+    // 1. Status Distribution (Doughnut Chart with Center Text)
     const ctxStatus = document.getElementById('statusChart');
     if (ctxStatus) {
         new Chart(ctxStatus, {
             type: 'doughnut',
             data: {
-                labels: statusObj.labels,
+                labels: statusDataObj.labels,
                 datasets: [{
-                    data: statusObj.data,
-                    backgroundColor: ['#0ea5e9', '#22c55e', '#ef4444', '#64748b', '#8b5cf6', '#f59e0b'],
-                    borderWidth: 2,
-                    borderColor: '#ffffff',
-                    hoverOffset: 6
+                    data: statusDataObj.data,
+                    backgroundColor: ['#2196F3','#28A745','#DC3545','#6C757D','#6f42c1','#FFC107'],
+                    borderWidth: 0
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: '70%',
+                cutout: '65%',
                 plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: {
-                            font: { size: 11, weight: '600' },
-                            boxWidth: 10,
-                            padding: 12
-                        }
-                    },
+                    legend: { position: 'right' },
                     tooltip: {
-                        backgroundColor: '#002244',
-                        titleFont: { size: 12, weight: 'bold' },
-                        bodyFont: { size: 12 },
-                        padding: 12,
-                        cornerRadius: 8,
                         callbacks: {
-                            label: function (ctx) {
-                                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                                const pct = total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0;
-                                return ' ' + ctx.label + ': ' + ctx.raw + ' Projects (' + pct + '%)';
+                            label: function(context) {
+                                let l = context.label || '';
+                                if (l) l += ': ';
+                                l += context.raw + ' projects';
+                                return l;
                             }
                         }
                     }
@@ -105,52 +94,50 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             plugins: [{
                 id: 'centerText',
-                beforeDraw: function (chart) {
-                    const { ctx, chartArea } = chart;
-                    if (!chartArea) return;
-                    ctx.save();
-                    const centerX = (chartArea.left + chartArea.right) / 2;
-                    const centerY = (chartArea.top + chartArea.bottom) / 2;
-                    const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-
-                    ctx.font = '800 1.8rem Inter';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillStyle = '#003366';
-                    ctx.fillText(total + ' Total', centerX, centerY - 6);
-
-                    ctx.font = '600 0.72rem Inter';
-                    ctx.fillStyle = '#94A3B8';
-                    ctx.fillText('Projects Monitored', centerX, centerY + 18);
+                beforeDraw: function(chart) {
+                    const width = chart.width, height = chart.height, ctx = chart.ctx;
                     ctx.restore();
+                    const fontSize = (height / 114).toFixed(2);
+                    ctx.font = "bold " + fontSize + "em Inter";
+                    ctx.textBaseline = "middle";
+                    ctx.fillStyle = "#003366";
+                    const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                    const text = total.toString() + " Total";
+                    const textX = Math.round((width - ctx.measureText(text).width) / 2);
+                    const textY = chart.chartArea.top + (chart.chartArea.bottom - chart.chartArea.top) / 2;
+                    ctx.fillText(text, textX, textY);
+
+                    ctx.font = (fontSize * 0.4).toFixed(2) + "em Inter";
+                    ctx.fillStyle = "#6C757D";
+                    const subText = "Projects Monitored";
+                    const subTextX = Math.round((width - ctx.measureText(subText).width) / 2);
+                    ctx.fillText(subText, subTextX, textY + 22);
+                    ctx.save();
                 }
             }]
         });
     }
 
-    // ========================================================
-    //  2. PHYSICAL PROGRESS — Horizontal Bar Chart
-    // ========================================================
+    // 2. Physical Progress (Horizontal Bar Chart with Linear Gradient)
     const ctxProgress = document.getElementById('progressChart');
     if (ctxProgress) {
         new Chart(ctxProgress, {
             type: 'bar',
             data: {
-                labels: progressObj.labels,
+                labels: progressDataObj.labels,
                 datasets: [{
                     label: 'Physical Progress (%)',
-                    data: progressObj.data,
-                    backgroundColor: function (context) {
+                    data: progressDataObj.data,
+                    backgroundColor: function(context) {
                         const chart = context.chart;
                         const { ctx, chartArea } = chart;
                         if (!chartArea) return '#003366';
                         const gradient = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
                         gradient.addColorStop(0, '#003366');
-                        gradient.addColorStop(1, '#0ea5e9');
+                        gradient.addColorStop(1, '#2196F3');
                         return gradient;
                     },
-                    borderRadius: 6,
-                    barThickness: 18
+                    borderRadius: 4
                 }]
             },
             options: {
@@ -158,86 +145,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: {
-                        beginAtZero: true,
-                        max: 100,
-                        grid: { color: '#F1F5F9', drawBorder: false },
-                        ticks: { callback: v => v + '%' }
-                    },
+                    x: { beginAtZero: true, max: 100, grid: { color: '#F5F5F5' } },
                     y: {
-                        grid: { display: false, drawBorder: false },
-                        ticks: { font: { weight: '600' }, color: '#1A1A2E' }
+                        grid: { display: false },
+                        ticks: {
+                            autoSkip: false,
+                            callback: function(value) {
+                                const label = this.getLabelForValue(value);
+                                return label.length > 22 ? label.slice(0, 22) + '…' : label;
+                            }
+                        }
                     }
                 },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: '#002244',
-                        padding: 12,
-                        cornerRadius: 8,
-                        callbacks: { label: ctx => ' Physical Progress: ' + ctx.raw + '%' }
-                    }
-                }
-            }
-        });
-    }
-
-    // ========================================================
-    //  3. COST ANALYSIS — Grouped Bar Chart
-    // ========================================================
-    const ctxCost = document.getElementById('costChart');
-    if (ctxCost) {
-        new Chart(ctxCost, {
-            type: 'bar',
-            data: {
-                labels: costObj.labels,
-                datasets: [
-                    {
-                        label: 'Approved Cost',
-                        data: costObj.approved,
-                        backgroundColor: '#003366',
-                        borderRadius: 4,
-                        barPercentage: 0.75
-                    },
-                    {
-                        label: 'Revised Cost',
-                        data: costObj.revised,
-                        backgroundColor: '#FF9933',
-                        borderRadius: 4,
-                        barPercentage: 0.75
-                    },
-                    {
-                        label: 'Expenditure',
-                        data: costObj.expenditure,
-                        backgroundColor: '#22c55e',
-                        borderRadius: 4,
-                        barPercentage: 0.75
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        grid: { display: false, drawBorder: false },
-                        ticks: { font: { weight: '600' } }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        max: 4500,
-                        grid: { color: '#F1F5F9', drawBorder: false },
-                        ticks: { callback: v => '₹ ' + v.toLocaleString('en-IN') + ' Cr' }
-                    }
-                },
-                plugins: {
-                    legend: { position: 'top', labels: { font: { size: 11, weight: '600' }, boxWidth: 10 } },
-                    tooltip: {
-                        backgroundColor: '#002244',
-                        padding: 12,
-                        cornerRadius: 8,
                         callbacks: {
-                            label: ctx => ' ' + ctx.dataset.label + ': ₹ ' + ctx.raw.toLocaleString('en-IN') + ' Cr'
+                            title: function(items) {
+                                return progressDataObj.labels[items[0].dataIndex];
+                            }
                         }
                     }
                 }
@@ -245,83 +171,83 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ========================================================
-    //  4. STATE-WISE PROJECTS — Horizontal Bar Chart
-    // ========================================================
+    // 3. Cost Analysis (Grouped Bar Chart)
+    const ctxCost = document.getElementById('costChart');
+    if (ctxCost) {
+        new Chart(ctxCost, {
+            type: 'bar',
+            data: {
+                labels: costDataObj.labels,
+                datasets: [
+                    { label: 'Approved Cost', data: costDataObj.approved, backgroundColor: '#003366', borderRadius: 4 },
+                    { label: 'Revised Cost', data: costDataObj.revised, backgroundColor: '#FF9933', borderRadius: 4 },
+                    { label: 'Expenditure', data: costDataObj.expenditure, backgroundColor: '#28A745', borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#F5F5F5' },
+                        ticks: { callback: function(v) { return '₹ ' + v + ' Cr'; } }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) { return context.dataset.label + ': ₹ ' + context.raw + ' Cr'; }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 4. State-wise Projects (Horizontal Bar Chart)
     const ctxState = document.getElementById('stateChart');
     if (ctxState) {
         new Chart(ctxState, {
             type: 'bar',
             data: {
-                labels: stateObj.labels,
-                datasets: [{
-                    label: 'Projects',
-                    data: stateObj.data,
-                    backgroundColor: function (context) {
-                        const chart = context.chart;
-                        const { ctx, chartArea } = chart;
-                        if (!chartArea) return '#003366';
-                        const gradient = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
-                        gradient.addColorStop(0, '#003366');
-                        gradient.addColorStop(1, '#6366f1');
-                        return gradient;
-                    },
-                    borderRadius: 6,
-                    barThickness: 16
-                }]
+                labels: stateDataObj.labels,
+                datasets: [{ label: 'Number of Projects', data: stateDataObj.data, backgroundColor: '#003366', borderRadius: 4 }]
             },
             options: {
                 indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: {
-                        beginAtZero: true,
-                        max: 25,
-                        grid: { color: '#F1F5F9', drawBorder: false },
-                        ticks: { precision: 0 }
-                    },
-                    y: {
-                        grid: { display: false, drawBorder: false },
-                        ticks: { font: { weight: '600' }, color: '#1A1A2E' }
-                    }
+                    x: { beginAtZero: true, grid: { color: '#F5F5F5' }, ticks: { precision: 0 } },
+                    y: { grid: { display: false } }
                 },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: '#002244',
-                        padding: 12,
-                        cornerRadius: 8,
-                        callbacks: { label: ctx => ' ' + ctx.raw + ' Projects' }
-                    }
-                }
+                plugins: { legend: { display: false } }
             }
         });
     }
 
-    // ========================================================
-    //  5. MINISTRY-WISE PROJECTS — Horizontal Bar Chart
-    // ========================================================
+    // 5. Ministry-wise Projects (Horizontal Bar Chart with Saffron Gradient)
     const ctxMinistry = document.getElementById('ministryChart');
     if (ctxMinistry) {
         new Chart(ctxMinistry, {
             type: 'bar',
             data: {
-                labels: ministryObj.labels,
+                labels: ministryDataObj.labels,
                 datasets: [{
-                    label: 'Projects',
-                    data: ministryObj.data,
-                    backgroundColor: function (context) {
+                    label: 'Number of Projects',
+                    data: ministryDataObj.data,
+                    backgroundColor: function(context) {
                         const chart = context.chart;
                         const { ctx, chartArea } = chart;
                         if (!chartArea) return '#FF9933';
                         const gradient = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
                         gradient.addColorStop(0, '#FF9933');
-                        gradient.addColorStop(1, '#f59e0b');
+                        gradient.addColorStop(1, '#FFB366');
                         return gradient;
                     },
-                    borderRadius: 6,
-                    barThickness: 16
+                    borderRadius: 4
                 }]
             },
             options: {
@@ -329,192 +255,115 @@ document.addEventListener('DOMContentLoaded', function () {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: {
-                        beginAtZero: true,
-                        max: 30,
-                        grid: { color: '#F1F5F9', drawBorder: false },
-                        ticks: { precision: 0 }
-                    },
-                    y: {
-                        grid: { display: false, drawBorder: false },
-                        ticks: { font: { weight: '600' }, color: '#1A1A2E' }
-                    }
+                    x: { beginAtZero: true, grid: { color: '#F5F5F5' }, ticks: { precision: 0 } },
+                    y: { grid: { display: false } }
                 },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: '#002244',
-                        padding: 12,
-                        cornerRadius: 8,
-                        callbacks: { label: ctx => ' ' + ctx.raw + ' Projects' }
-                    }
-                }
+                plugins: { legend: { display: false } }
             }
         });
     }
 
-    // ========================================================
-    //  6. MONTHLY PROGRESS TREND — Line Chart
-    // ========================================================
+    // 6. Monthly Progress Trend (Smooth Line Chart with Fill)
     const ctxMonthly = document.getElementById('monthlyChart');
     if (ctxMonthly) {
         new Chart(ctxMonthly, {
             type: 'line',
             data: {
-                labels: monthlyObj.labels,
+                labels: monthlyDataObj.labels,
                 datasets: [{
                     label: 'Overall Progress (%)',
-                    data: monthlyObj.data,
+                    data: monthlyDataObj.data,
                     borderColor: '#003366',
-                    backgroundColor: function (context) {
-                        const chart = context.chart;
-                        const { ctx, chartArea } = chart;
-                        if (!chartArea) return 'rgba(0,51,102,0.1)';
-                        const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                        gradient.addColorStop(0, 'rgba(0,51,102,0.18)');
-                        gradient.addColorStop(1, 'rgba(0,51,102,0.01)');
-                        return gradient;
-                    },
-                    borderWidth: 3,
+                    backgroundColor: 'rgba(0, 51, 102, 0.1)',
+                    borderWidth: 2,
                     pointBackgroundColor: '#003366',
-                    pointBorderColor: '#ffffff',
+                    pointBorderColor: '#fff',
                     pointBorderWidth: 2,
-                    pointRadius: 6,
-                    pointHoverRadius: 8,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
                     fill: true,
-                    tension: 0.38
+                    tension: 0.4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        grid: { color: '#F1F5F9', drawBorder: false },
-                        ticks: { callback: v => v + '%' }
-                    },
-                    x: {
-                        grid: { display: false, drawBorder: false },
-                        ticks: { font: { weight: '600' } }
-                    }
+                    y: { beginAtZero: true, max: 100, grid: { color: '#F5F5F5' } },
+                    x: { grid: { display: false } }
                 },
                 plugins: {
                     legend: { display: false },
-                    tooltip: {
-                        backgroundColor: '#002244',
-                        padding: 12,
-                        cornerRadius: 8,
-                        callbacks: { label: ctx => ' Overall Progress: ' + ctx.raw + '%' }
-                    }
+                    tooltip: { callbacks: { label: function(context) { return context.dataset.label + ': ' + context.raw + '%'; } } }
                 }
             }
         });
     }
 
-    // ========================================================
-    //  SIDEBAR TOGGLE & PERSISTENCE
-    // ========================================================
-    const sidebar = document.getElementById('dashSidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    const toggleBtn = document.getElementById('sidebarToggle');
-    const mobileBtn = document.getElementById('mobileSidebarBtn');
-
-    if (toggleBtn && sidebar) {
-        toggleBtn.addEventListener('click', function () {
-            if (window.innerWidth >= 992) {
-                sidebar.classList.toggle('collapsed');
-                localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('collapsed'));
-            } else {
-                sidebar.classList.remove('mobile-open');
-                if (overlay) overlay.classList.remove('show');
-            }
-        });
-
-        if (localStorage.getItem('sidebar_collapsed') === 'true' && window.innerWidth >= 992) {
-            sidebar.classList.add('collapsed');
-        }
-    }
-
-    if (mobileBtn && sidebar && overlay) {
-        mobileBtn.addEventListener('click', function () {
-            sidebar.classList.toggle('mobile-open');
-            overlay.classList.toggle('show');
-        });
-
-        overlay.addEventListener('click', function () {
-            sidebar.classList.remove('mobile-open');
-            overlay.classList.remove('show');
-        });
-    }
-
-    // ========================================================
-    //  TOAST NOTIFICATION SYSTEM
-    // ========================================================
-    function showToast(message, type) {
-        type = type || 'success';
-        const container = document.getElementById('toastContainer');
-        if (!container) return;
-
-        const toast = document.createElement('div');
-        toast.className = 'custom-toast' + (type === 'error' ? ' error' : '');
-
-        const iconClass = type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark';
-        const iconColor = type === 'success' ? '#22c55e' : '#ef4444';
-
-        toast.innerHTML =
-            '<span class="toast-icon" style="color:' + iconColor + '"><i class="fa-solid ' + iconClass + '"></i></span>' +
-            '<span class="toast-msg">' + message + '</span>' +
-            '<button class="toast-close" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>';
-
-        container.appendChild(toast);
-
-        setTimeout(function () {
-            if (toast.parentElement) {
-                toast.style.animation = 'slideOut 0.3s ease forwards';
-                setTimeout(function () { toast.remove(); }, 300);
-            }
-        }, 4000);
-    }
-
-    // ========================================================
-    //  REFRESH DATA BUTTON (LOADING SPINNER + SIMULATION)
-    // ========================================================
+    // Handlers for Refresh & Export Buttons
     const btnRefresh = document.getElementById('btnRefresh');
     if (btnRefresh) {
-        btnRefresh.addEventListener('click', async function () {
-            btnRefresh.classList.add('loading');
+        btnRefresh.addEventListener('click', async function() {
             btnRefresh.disabled = true;
+            const origHTML = btnRefresh.innerHTML;
+            btnRefresh.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Refreshing...';
 
             try {
                 const res = await fetch('/api/dashboard/');
                 if (res.ok) {
                     const data = await res.json();
-                    console.log('[IIPMP Dashboard] Refreshed API payload:', data);
+                    if (data.total_projects !== undefined) {
+                        const elTotal = document.getElementById('valTotalProjects');
+                        if (elTotal) elTotal.textContent = data.total_projects;
+                    }
+                    if (data.ongoing_count !== undefined) {
+                        const elOngoing = document.getElementById('valOngoing');
+                        if (elOngoing) elOngoing.textContent = data.ongoing_count;
+                    }
+                    if (data.completed_count !== undefined) {
+                        const elComp = document.getElementById('valCompleted');
+                        if (elComp) elComp.textContent = data.completed_count;
+                    }
+                    if (data.delayed_count !== undefined) {
+                        const elDel = document.getElementById('valDelayed');
+                        if (elDel) elDel.textContent = data.delayed_count;
+                    }
+                    if (data.not_started_count !== undefined) {
+                        const elHold = document.getElementById('valOnHold');
+                        if (elHold) elHold.textContent = data.not_started_count;
+                    }
+                    if (data.at_risk_count !== undefined) {
+                        const elRisk = document.getElementById('valAtRisk');
+                        if (elRisk) elRisk.textContent = data.at_risk_count;
+                    }
+                    if (data.total_approved_cost !== undefined) {
+                        const elCost = document.getElementById('valApprovedCost');
+                        if (elCost) elCost.textContent = '₹' + Math.round(data.total_approved_cost).toLocaleString('en-IN') + ' Cr';
+                    }
+                    if (data.total_expenditure !== undefined) {
+                        const elExp = document.getElementById('valExpenditure');
+                        if (elExp) elExp.textContent = '₹' + Math.round(data.total_expenditure).toLocaleString('en-IN') + ' Cr';
+                    }
+                    if (data.avg_progress !== undefined) {
+                        const elProg = document.getElementById('valAvgProgress');
+                        if (elProg) elProg.textContent = data.avg_progress + '%';
+                    }
                 }
-            } catch (err) {
-                console.warn('[IIPMP Dashboard] API refresh notice:', err);
+            } catch (e) {
+                console.warn('[IIPMP] Refresh data notice:', e);
             }
 
-            setTimeout(function () {
-                btnRefresh.classList.remove('loading');
+            setTimeout(function() {
                 btnRefresh.disabled = false;
-                showToast('Dashboard data refreshed successfully', 'success');
-            }, 850);
+                btnRefresh.innerHTML = origHTML;
+            }, 600);
         });
     }
 
-    // ========================================================
-    //  EXPORT REPORT BUTTON (CSV / PRINT DOWNLOAD)
-    // ========================================================
     const btnExport = document.getElementById('btnExport');
     if (btnExport) {
-        btnExport.addEventListener('click', function () {
-            showToast('Downloading Project Dashboard Report (CSV)...', 'success');
-            setTimeout(function () {
-                window.location.href = '/dashboard/export/';
-            }, 500);
+        btnExport.addEventListener('click', function() {
+            window.location.href = '/dashboard/export/';
         });
     }
 });
