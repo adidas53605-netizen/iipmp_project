@@ -57,7 +57,9 @@ class SecurityTestCase(TestCase):
         response = self.client.post(login_url, {'email': email, 'step': 'request_otp'})
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context['show_otp'])
-        otp_code = response.context['otp_code']
+        otp_data = cache.get(f"otp_data_{email}")
+        self.assertIsNotNone(otp_data)
+        otp_code = otp_data['code']
         self.assertEqual(len(otp_code), 6)
 
         # 2. Invalid OTP -> Should display error message

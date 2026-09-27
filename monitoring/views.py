@@ -775,7 +775,6 @@ def login_view(request):
                     'show_otp': True,
                     'otp_email': email,
                     'otp_expired': True,
-                    'otp_code': pending_code,
                 }
                 return render(request, 'login.html', context)
 
@@ -799,7 +798,6 @@ def login_view(request):
                     context = {
                         'show_otp': True,
                         'otp_email': email,
-                        'otp_code': pending_code,
                         'otp_attempts': remaining_tries,
                     }
                     return render(request, 'login.html', context)
@@ -856,7 +854,7 @@ def login_view(request):
         last_sent = cache.get(cache_sent_key) or request.session.get(cache_sent_key)
         if last_sent and (now_ts - last_sent) < 60:
             messages.error(request, "Please wait 60 seconds before requesting a new OTP.")
-            return render(request, 'login.html', {'otp_email': email})
+            return render(request, 'login.html', {'show_otp': True, 'otp_email': email})
 
         # Protection 2: Check Lockout (locked after 5 wrong tries for 10 minutes)
         cache_lock_key = f"otp_locked_{email}"
@@ -890,9 +888,13 @@ def login_view(request):
         brevo_api_key = getattr(settings, 'BREVO_API_KEY', None) or os.environ.get('BREVO_API_KEY', '')
         sender_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or os.environ.get('DEFAULT_FROM_EMAIL', 'Jharna0710@gmail.com')
 
+        print(f"[BREVO EMAIL API] Preparing to send OTP to {email}. Key configured: {'YES' if brevo_api_key else 'NO'}")
+        logger.info(f"[BREVO EMAIL API] Preparing to send OTP to {email}. Key configured: {'YES' if brevo_api_key else 'NO'}")
+
         if not brevo_api_key:
-            logger.warning(f"BREVO_API_KEY is not set. Demo Mode OTP for {email} is {otp_code}")
-            messages.info(request, f"A 6-digit OTP code has been generated. (Demo Mode: Your OTP is {otp_code})")
+            print(f"[BREVO EMAIL API] BREVO_API_KEY not set. OTP for {email} stored in cache/session.")
+            logger.warning(f"[BREVO EMAIL API] BREVO_API_KEY not set. OTP for {email} stored in cache/session.")
+            messages.success(request, f"A 6-digit OTP code has been sent to {email}. Please check your email inbox.")
         else:
             try:
                 brevo_url = "https://api.brevo.com/v3/smtp/email"
@@ -907,22 +909,27 @@ def login_view(request):
                     "subject": "Your IIPMP OTP Code",
                     "htmlContent": f"<p>Your 6-digit verification OTP is <b style='font-size: 20px; color: #003366;'>{otp_code}</b>. It expires in 10 minutes.</p>"
                 }
+                print(f"[BREVO EMAIL API] Sending POST to {brevo_url} for {email}...")
                 response = requests.post(brevo_url, headers=headers, json=payload, timeout=10)
+                print(f"[BREVO EMAIL API] HTTP Status: {response.status_code}, Response Body: {response.text}")
+                logger.info(f"[BREVO EMAIL API] HTTP Status: {response.status_code}, Response Body: {response.text}")
+
                 if response.status_code in (200, 201, 202):
                     messages.success(request, f"A 6-digit OTP code has been sent to {email}. Please check your email inbox.")
                 else:
-                    logger.error(f"Brevo API error status ({response.status_code}): {response.text}")
+                    logger.error(f"[BREVO EMAIL API] Delivery failed status ({response.status_code}): {response.text}")
                     messages.error(request, "Failed to send OTP, please try again.")
             except Exception as e:
-                logger.exception(f"Exception calling Brevo API for {email}: {e}")
+                print(f"[BREVO EMAIL API] Exception calling Brevo API for {email}: {e}")
+                logger.exception(f"[BREVO EMAIL API] Exception calling Brevo API for {email}: {e}")
                 messages.error(request, "Failed to send OTP, please try again.")
 
         context = {
             'show_otp': True,
             'otp_email': email,
-            'otp_code': otp_code,
             'otp_attempts': 5,
         }
+        return render(request, 'login.html', context)
         return render(request, 'login.html', context)
 
     return render(request, 'login.html')

@@ -206,7 +206,7 @@
                         <input type="email" class="form-control" id="loginEmail" name="email" value="{{ otp_email|default:'' }}" placeholder="Enter your email ID (e.g. Jharna0710@gmail.com)" required autocomplete="email">
                     </div>
                     <div class="form-text text-muted small mt-1">
-                        <i class="fa-solid fa-shield-halved text-primary me-1"></i> A 6-digit verification OTP will be sent to your email address via Gmail SMTP.
+                        <i class="fa-solid fa-shield-halved text-primary me-1"></i> A 6-digit verification OTP will be sent to your email address.
                     </div>
                 </div>
 
@@ -221,18 +221,14 @@
             <!-- ========================================================= -->
             <div id="otpSection" class="{% if not show_otp %}d-none{% endif %}">
                 <!-- Status Notice Banner -->
-                <div class="alert alert-warning border-warning shadow-sm rounded-3 p-3 mb-4" style="background-color: #FEF3C7; border-color: #F59E0B !important;">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                        <span class="badge bg-primary text-white fw-bold px-2 py-1" style="font-size: 0.75rem;">GMAIL SMTP</span>
-                        <span class="fw-bold text-dark small">Verification Code Sent</span>
+                <div class="alert alert-info border-info shadow-sm rounded-3 p-3 mb-4" style="background-color: #EFF6FF; border-color: #3B82F6 !important;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fa-solid fa-envelope-circle-check text-primary fs-5"></i>
+                        <span class="fw-bold text-dark">Verification Code Sent</span>
                     </div>
-                    <div class="p-3 bg-white rounded-3 border border-warning text-center shadow-sm">
-                        <span class="small text-muted fw-bold d-block mb-1">Your 6-Digit Verification OTP Code:</span>
-                        <div class="font-monospace fs-2 fw-bold text-danger my-1" id="demoOtpCodeDisplay" style="letter-spacing: 4px;">
-                            {{ otp_code|default:'123456' }}
-                        </div>
-                        <span class="small text-secondary d-block mt-1" style="font-size: 0.78rem;">
-                            (Sent to <strong id="otpTargetEmailDisplay">{{ otp_email|default:'' }}</strong>. Please check your inbox and type the code below.)
+                    <div class="p-3 bg-white rounded-3 border text-center shadow-sm">
+                        <span class="small text-secondary d-block" style="font-size: 0.88rem;">
+                            A 6-digit verification code has been sent to <strong id="otpTargetEmailDisplay" class="text-navy">{{ otp_email|default:'' }}</strong>.<br>Please check your email inbox and enter the code below.
                         </span>
                     </div>
                 </div>
@@ -782,12 +778,10 @@
         }
 
         const targetPhoneEl = document.getElementById('otpTargetPhoneDisplay');
-        const demoCodeEl = document.getElementById('demoOtpCodeDisplay');
         const attemptsEl = document.getElementById('otpAttemptsDisplay');
         const otpInput = document.getElementById('otpInput');
 
         if (targetPhoneEl) targetPhoneEl.textContent = phone;
-        if (demoCodeEl) demoCodeEl.textContent = otpCode;
         if (attemptsEl) attemptsEl.textContent = '3/3';
         if (otpInput) {
             otpInput.value = '';
@@ -868,11 +862,9 @@
         currentOtpState.expiresAt = Date.now() + 5 * 60 * 1000;
         currentOtpState.attemptsLeft = 3;
 
-        const demoCodeEl = document.getElementById('demoOtpCodeDisplay');
         const attemptsEl = document.getElementById('otpAttemptsDisplay');
         const otpInput = document.getElementById('otpInput');
 
-        if (demoCodeEl) demoCodeEl.textContent = newOtp;
         if (attemptsEl) attemptsEl.textContent = '3/3';
         if (otpInput) {
             otpInput.value = '';
@@ -926,10 +918,10 @@
         });
 
         {% if show_otp %}
-        const serverOtpCode = "{{ otp_code|escapejs }}";
-        const serverOtpPhone = "{{ otp_phone|escapejs }}";
-        if (serverOtpCode) {
-            initiateOtpStep(serverOtpPhone, { name: "Project Officer", phone: serverOtpPhone }, 'login', serverOtpCode);
+        const serverOtpEmail = "{{ otp_email|escapejs }}";
+        const targetEmailEl = document.getElementById('otpTargetEmailDisplay');
+        if (targetEmailEl && serverOtpEmail) {
+            targetEmailEl.textContent = serverOtpEmail;
         }
         {% endif %}
     });
