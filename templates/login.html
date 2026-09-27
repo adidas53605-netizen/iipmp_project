@@ -186,169 +186,45 @@
     <div class="card login-card">
         <!-- Card Navy Header Bar -->
         <div class="card-header-bar">
-            <h5 class="fw-bold mb-0 text-white"><i class="fa-solid fa-user-shield me-2 text-warning"></i>Portal Access</h5>
-            <span class="small opacity-75">Sign in to your account or register as a new user</span>
+            <h5 class="fw-bold mb-0 text-white"><i class="fa-solid fa-envelope-circle-check me-2 text-warning"></i>Email OTP Portal Access</h5>
+            <span class="small opacity-75">Sign in to your account or register using Email OTP verification</span>
         </div>
 
         <div class="card-body p-4">
 
-            <!-- Mode Tabs (Login / Register) -->
-            <div class="mode-nav-tabs {% if show_otp %}d-none{% endif %}">
-                <button type="button" class="nav-link active" id="tab-login-btn" onclick="switchMode('login')">
-                    <i class="fa-solid fa-right-to-bracket me-1"></i>Login
-                </button>
-                <button type="button" class="nav-link" id="tab-register-btn" onclick="switchMode('register')">
-                    <i class="fa-solid fa-user-plus me-1"></i>New User? Register
-                </button>
-            </div>
-
-            <!-- Inline Error Alert -->
-            <div id="authErrorAlert" class="alert alert-danger alert-permanent border-danger shadow-sm rounded-3 py-2 px-3 mb-3 d-none">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-circle-exclamation text-danger fs-5"></i>
-                    <span id="authErrorMessage" class="small fw-semibold">Error message details</span>
-                </div>
-            </div>
-
             <!-- ========================================================= -->
-            <!-- MODE 1: LOGIN FORM                                       -->
+            <!-- STEP 1: EMAIL INPUT FORM                                 -->
             <!-- ========================================================= -->
-            <form id="loginForm" method="POST" action="{% url 'login' %}" onsubmit="return handleLoginSubmit(event)" class="{% if show_otp %}d-none{% endif %}">
+            <form id="emailForm" method="POST" action="{% url 'login' %}" class="{% if show_otp %}d-none{% endif %}">
                 {% csrf_token %}
-                <input type="hidden" name="step" value="password">
-                <!-- Phone Number -->
-                <div class="mb-3">
-                    <label for="loginPhone" class="form-label">Phone Number <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
-                        <input type="tel" class="form-control font-monospace" id="loginPhone" name="phone" value="{{ otp_phone|default:'' }}" placeholder="Enter 10-digit mobile number" maxlength="10" required autocomplete="tel">
-                    </div>
-                </div>
+                <input type="hidden" name="step" value="request_otp">
 
-                <!-- Password -->
-                <div class="mb-3">
-                    <label for="loginPassword" class="form-label">Password <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                        <input type="password" class="form-control" id="loginPassword" name="password" placeholder="Enter your password" required autocomplete="current-password">
-                        <button type="button" class="btn btn-outline-secondary px-3" onclick="togglePassword('loginPassword', 'loginEyeIcon')" title="Toggle password visibility">
-                            <i class="fa-solid fa-eye" id="loginEyeIcon"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Math Captcha -->
                 <div class="mb-4">
-                    <label for="loginCaptcha" class="form-label">Security Verification (Captcha) <span class="text-danger">*</span></label>
-                    <div class="captcha-box mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="small text-muted fw-bold">Solve:</span>
-                            <span class="captcha-code" id="captchaQuestion">7 + 3 = ?</span>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="generateCaptcha()" title="Refresh Captcha">
-                            <i class="fa-solid fa-arrows-rotate"></i> Refresh
-                        </button>
+                    <label for="loginEmail" class="form-label">Email Address <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
+                        <input type="email" class="form-control" id="loginEmail" name="email" value="{{ otp_email|default:'' }}" placeholder="Enter your email ID (e.g. Jharna0710@gmail.com)" required autocomplete="email">
                     </div>
-                    <input type="number" class="form-control" id="loginCaptcha" placeholder="Enter calculated answer" required autocomplete="off">
+                    <div class="form-text text-muted small mt-1">
+                        <i class="fa-solid fa-shield-halved text-primary me-1"></i> A 6-digit verification OTP will be sent to your email address via Gmail SMTP.
+                    </div>
                 </div>
 
                 <!-- Submit Button -->
-                <button type="submit" id="loginSubmitBtn" class="btn-submit-action mb-2">
-                    <span class="spinner-border spinner-border-sm me-2 d-none" id="loginSpinner"></span>
-                    <span id="loginBtnText"><i class="fa-solid fa-right-to-bracket me-2"></i>Login</span>
+                <button type="submit" id="emailSubmitBtn" class="btn-submit-action mb-2">
+                    <i class="fa-solid fa-paper-plane me-2"></i>Send 6-Digit Verification OTP
                 </button>
             </form>
 
             <!-- ========================================================= -->
-            <!-- MODE 2: REGISTER FORM                                    -->
-            <!-- ========================================================= -->
-            <form id="registerForm" method="POST" action="{% url 'login' %}" onsubmit="return handleRegisterSubmit(event)" class="d-none">
-                {% csrf_token %}
-                <input type="hidden" name="step" value="password">
-                <!-- Full Name -->
-                <div class="mb-3">
-                    <label for="regName" class="form-label">Full Name <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
-                        <input type="text" class="form-control" id="regName" placeholder="e.g. Rajesh Kumar" required autocomplete="name">
-                    </div>
-                </div>
-
-                <!-- Phone Number -->
-                <div class="mb-3">
-                    <label for="regPhone" class="form-label">Phone Number <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
-                        <input type="tel" class="form-control font-monospace" id="regPhone" placeholder="10-digit mobile number" maxlength="10" required autocomplete="tel">
-                    </div>
-                </div>
-
-                <!-- Password -->
-                <div class="mb-3">
-                    <label for="regPassword" class="form-label">Create Password <span class="text-danger">*</span></label>
-                    <div class="input-group mb-2">
-                        <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                        <input type="password" class="form-control" id="regPassword" placeholder="Create a strong password" required autocomplete="new-password" oninput="handlePasswordChecklistInput('regPassword', 'reg-')">
-                        <button type="button" class="btn btn-outline-secondary px-3" onclick="togglePassword('regPassword', 'regEyeIcon1')">
-                            <i class="fa-solid fa-eye" id="regEyeIcon1"></i>
-                        </button>
-                    </div>
-                    <!-- Live Password Strength Checklist -->
-                    <div class="p-2.5 mb-2 bg-light rounded-3 border small" id="regPasswordChecklist">
-                        <span class="fw-bold d-block text-navy mb-1" style="font-size: 0.72rem; letter-spacing: 0.3px;">PASSWORD STRENGTH REQUIREMENTS:</span>
-                        <div class="d-flex flex-column gap-1" style="font-size: 0.76rem;">
-                            <span id="reg-length" class="text-muted"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> At least 8 characters</span>
-                            <span id="reg-uppercase" class="text-muted"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> At least 1 uppercase letter (A-Z)</span>
-                            <span id="reg-lowercase" class="text-muted"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> At least 1 lowercase letter (a-z)</span>
-                            <span id="reg-number" class="text-muted"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> At least 1 number (0-9)</span>
-                            <span id="reg-special" class="text-muted"><i class="fa-solid fa-circle-xmark text-danger me-1"></i> At least 1 special character (!@#$%^&*)</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Confirm Password -->
-                <div class="mb-3">
-                    <label for="regConfirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                        <input type="password" class="form-control" id="regConfirmPassword" placeholder="Confirm your password" required autocomplete="new-password">
-                        <button type="button" class="btn btn-outline-secondary px-3" onclick="togglePassword('regConfirmPassword', 'regEyeIcon2')">
-                            <i class="fa-solid fa-eye" id="regEyeIcon2"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Math Captcha -->
-                <div class="mb-4">
-                    <label for="regCaptcha" class="form-label">Security Verification (Captcha) <span class="text-danger">*</span></label>
-                    <div class="captcha-box mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="small text-muted fw-bold">Solve:</span>
-                            <span class="captcha-code" id="captchaQuestionReg">7 + 3 = ?</span>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="generateCaptcha()" title="Refresh Captcha">
-                            <i class="fa-solid fa-arrows-rotate"></i> Refresh
-                        </button>
-                    </div>
-                    <input type="number" class="form-control" id="regCaptcha" placeholder="Enter calculated answer" required autocomplete="off">
-                </div>
-
-                <!-- Submit Button -->
-                <button type="submit" id="regSubmitBtn" class="btn-submit-action mb-2">
-                    <span class="spinner-border spinner-border-sm me-2 d-none" id="regSpinner"></span>
-                    <span id="regBtnText"><i class="fa-solid fa-user-plus me-2"></i>Register & Continue</span>
-                </button>
-            </form>
-
-            <!-- ========================================================= -->
-            <!-- MODE 3: OTP VERIFICATION STEP                            -->
+            <!-- STEP 2: OTP VERIFICATION STEP                            -->
             <!-- ========================================================= -->
             <div id="otpSection" class="{% if not show_otp %}d-none{% endif %}">
-                <!-- Prominent Demo Mode OTP Banner -->
-                <div class="alert alert-warning alert-permanent border-warning shadow-sm rounded-3 p-3 mb-4" id="demoOtpBannerContainer" style="background-color: #FEF3C7; border-color: #F59E0B !important;">
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        <span class="badge bg-danger text-white fw-bold px-2 py-1" style="font-size: 0.75rem;">DEMO MODE</span>
-                        <span class="fw-bold text-dark small">SMS Integration Pending</span>
+                <!-- Status Notice Banner -->
+                <div class="alert alert-warning border-warning shadow-sm rounded-3 p-3 mb-4" style="background-color: #FEF3C7; border-color: #F59E0B !important;">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge bg-primary text-white fw-bold px-2 py-1" style="font-size: 0.75rem;">GMAIL SMTP</span>
+                        <span class="fw-bold text-dark small">Verification Code Sent</span>
                     </div>
                     <div class="p-3 bg-white rounded-3 border border-warning text-center shadow-sm">
                         <span class="small text-muted fw-bold d-block mb-1">Your 6-Digit Verification OTP Code:</span>
@@ -356,23 +232,24 @@
                             {{ otp_code|default:'123456' }}
                         </div>
                         <span class="small text-secondary d-block mt-1" style="font-size: 0.78rem;">
-                            (Generated for <strong id="otpTargetPhoneDisplay">{{ otp_phone|default:'' }}</strong>. Please type this code in the input box below to verify.)
+                            (Sent to <strong id="otpTargetEmailDisplay">{{ otp_email|default:'' }}</strong>. Please check your inbox and type the code below.)
                         </span>
                     </div>
                 </div>
 
-                <form id="otpForm" method="POST" action="{% url 'login' %}" onsubmit="return handleOtpSubmit(event)">
+                <form id="otpForm" method="POST" action="{% url 'login' %}">
                     {% csrf_token %}
                     <input type="hidden" name="step" value="verify_otp">
+                    <input type="hidden" name="email" value="{{ otp_email|default:'' }}">
                     <div class="mb-3">
                         <label for="otpInput" class="form-label text-navy fw-bold">Enter 6-Digit OTP <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fa-solid fa-key"></i></span>
-                            <input type="text" class="form-control font-monospace text-center fs-5" id="otpInput" name="otp_code" placeholder="6-digit code" maxlength="6" required autocomplete="off">
+                            <input type="text" class="form-control font-monospace text-center fs-4" id="otpInput" name="otp_code" placeholder="6-digit code" maxlength="6" required autocomplete="off">
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
-                            <span>Valid for: <strong id="otpTimerDisplay" class="text-danger">05:00</strong></span>
-                            <span>Attempts left: <strong id="otpAttemptsDisplay" class="text-dark">{{ otp_attempts|default:'3' }}/3</strong></span>
+                            <span>Valid for: <strong id="otpTimerDisplay" class="text-danger">10:00</strong></span>
+                            <span>Attempts left: <strong id="otpAttemptsDisplay" class="text-dark">{{ otp_attempts|default:'5' }}/5</strong></span>
                         </div>
                     </div>
 
@@ -381,12 +258,12 @@
                     </button>
 
                     <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="resendOtpBtn" onclick="handleResendOtp()" disabled>
-                            Resend OTP (<span id="resendCountdown">30</span>s)
+                        <button type="submit" name="step" value="request_otp" class="btn btn-sm btn-outline-secondary" id="resendOtpBtn">
+                            <i class="fa-solid fa-arrows-rotate me-1"></i>Resend OTP
                         </button>
-                        <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted" onclick="cancelOtpAndRestart()">
-                            <i class="fa-solid fa-arrow-left me-1"></i>Back to Login
-                        </button>
+                        <a href="{% url 'login' %}" class="btn btn-sm btn-link text-decoration-none text-muted">
+                            <i class="fa-solid fa-arrow-left me-1"></i>Back / Change Email
+                        </a>
                     </div>
                 </form>
             </div>
@@ -401,7 +278,7 @@
 
     <!-- Login Footer Credits -->
     <div class="login-footer-credits">
-        <p class="mb-1"><strong>IIPMP — Integrated Infrastructure Project Monitoring Portal (Preview)</strong></p>
+        <p class="mb-1"><strong>IIPMP — Integrated Infrastructure Project Monitoring Portal</strong></p>
         <p class="mb-0 text-muted">Government of India | Smart India Hackathon 2026</p>
     </div>
 

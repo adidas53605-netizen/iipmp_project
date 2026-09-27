@@ -13,6 +13,10 @@ from django.contrib.auth import authenticate, login, logout
 from django.db.models import Sum, Avg, Count, Q
 from django.http import JsonResponse
 from django.utils import timezone
+from django.core.cache import cache
+from django.core.mail import send_mail
+from django.conf import settings
+import logging
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .models import Project, Milestone, Alert, UserProfile, FailedLoginAttempt
 from .forms import ProjectForm, MilestoneForm, CSVImportForm
@@ -723,119 +727,199 @@ def search_api(request):
         })
     return JsonResponse({'results': results})
 
+logger = logging.getLogger(__name__)
+
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
 
     if request.method == 'POST':
         step = request.POST.get('step', '')
-        ip_addr = get_client_ip(request)
 
         # ----------------------------------------------------
-        # STEP 2: OTP VERIFICATION STEP (POST)
+        # STEP 2: VERIFY OTP STEP
         # ----------------------------------------------------
         if step == 'verify_otp' or 'otp_code' in request.POST:
             entered_otp = request.POST.get('otp_code', '').strip()
-            pending_code = request.session.get('pending_otp_code')
-            pending_expires = request.session.get('pending_otp_expires', 0)
-            pending_user_id = request.session.get('pending_user_id')
-            pending_phone = request.session.get('pending_otp_phone', '')
-            attempts_left = request.session.get('pending_otp_attempts', 3)
+            email = (request.POST.get('email') or request.session.get('pending_otp_email', '')).strip().lower()
 
-            if not pending_code or not pending_user_id:
-                messages.error(request, "OTP session expired. Please restart login.")
+            if not email:
+                messages.error(request, "Email session expired. Please request a new OTP.")
                 return render(request, 'login.html')
 
-            if timezone.now().timestamp() > pending_expires:
-                messages.error(request, "OTP expired after 5 minutes. Please click Resend OTP.")
+            now_ts = timezone.now().timestamp()
+
+            # Protection 2 Check: Lockout (locked after 5 wrong tries for 10 minutes)
+            cache_lock_key = f"otp_locked_{email}"
+            locked_until = cache.get(cache_lock_key) or request.session.get(cache_lock_key)
+            if locked_until and now_ts < locked_until:
+                remaining_mins = max(1, int((locked_until - now_ts) // 60))
+                messages.error(request, f"Account locked due to 5 wrong tries. Please try again after {remaining_mins} minute(s).")
+                return render(request, 'login.html', {'show_otp': True, 'otp_email': email})
+
+            # Retrieve stored OTP info
+            otp_data = cache.get(f"otp_data_{email}")
+            pending_code = (otp_data['code'] if otp_data else None) or request.session.get('pending_otp_code')
+            pending_expires = (otp_data['expires_at'] if otp_data else None) or request.session.get('pending_otp_expires', 0)
+            attempts = (otp_data['attempts'] if otp_data else 0) if otp_data else request.session.get('pending_otp_attempts', 0)
+
+            if not pending_code:
+                messages.error(request, "OTP expired, please request a new one")
+                return render(request, 'login.html', {'otp_email': email})
+
+            # Expiry check (5-10 minutes)
+            if now_ts > pending_expires:
+                messages.error(request, "OTP expired, please request a new one")
                 context = {
                     'show_otp': True,
-                    'otp_phone': pending_phone,
+                    'otp_email': email,
+                    'otp_expired': True,
                     'otp_code': pending_code,
-                    'otp_attempts': attempts_left,
                 }
                 return render(request, 'login.html', context)
 
+            # Incorrect OTP check
             if entered_otp != pending_code:
-                attempts_left -= 1
-                request.session['pending_otp_attempts'] = attempts_left
-                if attempts_left <= 0:
-                    for key in ['pending_otp_code', 'pending_otp_expires', 'pending_user_id', 'pending_otp_phone', 'pending_otp_attempts']:
-                        request.session.pop(key, None)
-                    messages.error(request, "OTP invalidated due to 3 incorrect attempts. Please restart login.")
+                attempts += 1
+                if otp_data:
+                    otp_data['attempts'] = attempts
+                    cache.set(f"otp_data_{email}", otp_data, timeout=600)
+                request.session['pending_otp_attempts'] = attempts
+
+                if attempts >= 5:
+                    lock_until = now_ts + (10 * 60) # 10 minutes lockout
+                    cache.set(cache_lock_key, lock_until, timeout=600)
+                    request.session[cache_lock_key] = lock_until
+                    messages.error(request, "Account locked due to 5 wrong tries. Please try again after 10 minutes.")
                     return render(request, 'login.html')
                 else:
-                    messages.error(request, f"Incorrect OTP code. {attempts_left} attempt(s) remaining.")
+                    remaining_tries = 5 - attempts
+                    messages.error(request, "Invalid OTP, please try again")
                     context = {
                         'show_otp': True,
-                        'otp_phone': pending_phone,
+                        'otp_email': email,
                         'otp_code': pending_code,
-                        'otp_attempts': attempts_left,
+                        'otp_attempts': remaining_tries,
                     }
                     return render(request, 'login.html', context)
 
-            # Correct OTP -> Authenticate User & Redirect to Dashboard
-            user_obj = User.objects.filter(id=pending_user_id).first()
-            if user_obj:
-                for key in ['pending_otp_code', 'pending_otp_expires', 'pending_user_id', 'pending_otp_phone', 'pending_otp_attempts']:
-                    request.session.pop(key, None)
-                reset_failed_attempts(pending_phone)
-                login(request, user_obj)
-                return redirect('dashboard')
-            else:
-                messages.error(request, "User account not found. Please restart login.")
-                return render(request, 'login.html')
+            # SUCCESS: Correct OTP!
+            cache.delete(f"otp_data_{email}")
+            cache.delete(f"otp_sent_{email}")
+            cache.delete(cache_lock_key)
+            for k in ['pending_otp_email', 'pending_otp_code', 'pending_otp_expires', 'pending_otp_attempts', cache_lock_key]:
+                request.session.pop(k, None)
+
+            # Find or Create User record
+            user = User.objects.filter(email__iexact=email).first()
+            if not user:
+                user = User.objects.filter(username__iexact=email).first()
+            if not user:
+                first_name = email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
+                user = User.objects.create_user(username=email, email=email, first_name=first_name)
+                user.set_unusable_password()
+                user.save()
+                UserProfile.objects.get_or_create(user=user, defaults={'role': 'nodal_officer'})
+
+            user.backend = 'django.contrib.auth.backends.ModelBackend'
+            login(request, user)
+
+            display_name = user.first_name or user.username or email
+            request.session['iipmp_logged_in'] = 'true'
+            request.session['iipmp_user_name'] = display_name
+            request.session['iipmp_user_email'] = email
+            request.session['iipmp_user_role'] = 'Nodal Officer' if not user.is_superuser else 'Administrator'
+
+            messages.success(request, f"Welcome to IIPMP Portal, {display_name}!")
+            return redirect('dashboard')
 
         # ----------------------------------------------------
-        # STEP 1: PHONE + PASSWORD VERIFICATION STEP (POST)
+        # STEP 1: SEND EMAIL OTP STEP
         # ----------------------------------------------------
-        is_limited, limit_msg = check_rate_limit(ip_addr)
-        if is_limited:
-            messages.error(request, limit_msg)
+        raw_input = (request.POST.get('email') or request.POST.get('phone') or request.POST.get('username') or '').strip().lower()
+
+        if not raw_input:
+            messages.error(request, "Please enter your email address.")
             return render(request, 'login.html')
 
-        identifier = request.POST.get('username') or request.POST.get('phone', '')
-        password = request.POST.get('password', '')
-
-        if identifier:
-            is_locked, lock_msg = check_lockout(identifier, ip_addr)
-            if is_locked:
-                messages.error(request, lock_msg)
-                return render(request, 'login.html')
-
-        user = authenticate(username=identifier, password=password)
-        if user is None and identifier:
-            user_obj = User.objects.filter(username=identifier).first()
-            if not user_obj and len(identifier) == 10 and identifier.isdigit() and password:
-                user_obj = User.objects.create_user(username=identifier, password=password)
-                UserProfile.objects.get_or_create(user=user_obj, defaults={'role': 'field_officer'})
-                user = user_obj
-
-        if user is not None:
-            # Credentials valid -> Generate 6-digit OTP and show OTP step
-            otp_code = f"{random.randint(100000, 999999)}"
-            request.session['pending_otp_code'] = otp_code
-            request.session['pending_otp_phone'] = identifier
-            request.session['pending_user_id'] = user.id
-            request.session['pending_otp_attempts'] = 3
-            request.session['pending_otp_expires'] = (timezone.now() + timedelta(minutes=5)).timestamp()
-
-            context = {
-                'show_otp': True,
-                'otp_phone': identifier,
-                'otp_code': otp_code,
-                'otp_attempts': 3,
-            }
-            return render(request, 'login.html', context)
+        # Format email address
+        if '@' in raw_input and '.' in raw_input:
+            email = raw_input
         else:
-            if identifier:
-                failed_cnt = record_failed_attempt(identifier, ip_addr)
-                if failed_cnt >= 5:
-                    messages.error(request, "Account locked due to 5 consecutive failed login attempts. Please try again after 15 minutes.")
-                else:
-                    messages.error(request, "Invalid phone number or password. Please try again.")
-            else:
-                messages.error(request, "Please enter both phone number and password.")
+            email = f"{raw_input}@iipmp.gov.in"
+
+        now_ts = timezone.now().timestamp()
+
+        # Protection 1: Spam limit (max 1 OTP request per email per 60 seconds)
+        cache_sent_key = f"otp_sent_{email}"
+        last_sent = cache.get(cache_sent_key) or request.session.get(cache_sent_key)
+        if last_sent and (now_ts - last_sent) < 60:
+            messages.error(request, "Please wait 60 seconds before requesting a new OTP.")
+            return render(request, 'login.html', {'otp_email': email})
+
+        # Protection 2: Check Lockout (locked after 5 wrong tries for 10 minutes)
+        cache_lock_key = f"otp_locked_{email}"
+        locked_until = cache.get(cache_lock_key) or request.session.get(cache_lock_key)
+        if locked_until and now_ts < locked_until:
+            remaining_mins = max(1, int((locked_until - now_ts) // 60))
+            messages.error(request, f"Account locked due to 5 wrong tries. Please try again after {remaining_mins} minute(s).")
+            return render(request, 'login.html', {'otp_email': email})
+
+        # Generate 6-digit numeric OTP
+        otp_code = f"{random.randint(100000, 999999)}"
+        expires_at = now_ts + (10 * 60) # 10 minutes expiry
+
+        otp_data = {
+            'email': email,
+            'code': otp_code,
+            'expires_at': expires_at,
+            'created_at': now_ts,
+            'attempts': 0,
+        }
+        cache.set(f"otp_data_{email}", otp_data, timeout=600)
+        cache.set(cache_sent_key, now_ts, timeout=60)
+
+        request.session['pending_otp_email'] = email
+        request.session['pending_otp_code'] = otp_code
+        request.session['pending_otp_expires'] = expires_at
+        request.session['pending_otp_attempts'] = 0
+        request.session[cache_sent_key] = now_ts
+
+        # Send OTP email using Gmail SMTP
+        try:
+            subject = "IIPMP Portal - Your OTP Verification Code"
+            body = f"""Dear User,
+
+Your 6-digit Verification OTP code for logging into the Integrated Infrastructure Project Monitoring Portal (IIPMP) is:
+
+OTP: {otp_code}
+
+This code is valid for 10 minutes. Please do not share this OTP with anyone.
+
+Regards,
+Government of India - IIPMP Team
+"""
+            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', 'Jharna0710@gmail.com')
+            send_mail(
+                subject=subject,
+                message=body,
+                from_email=from_email,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+            messages.success(request, f"A 6-digit OTP code has been sent to {email}. Please check your email inbox.")
+        except Exception as e:
+            logger.warning(f"Failed to send email to {email}: {e}")
+            messages.warning(request, f"OTP Code: {otp_code} (SMTP Notice: {e})")
+
+        context = {
+            'show_otp': True,
+            'otp_email': email,
+            'otp_code': otp_code,
+            'otp_attempts': 5,
+        }
+        return render(request, 'login.html', context)
+
     return render(request, 'login.html')
 
 def admin_login_view(request):

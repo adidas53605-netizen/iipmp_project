@@ -208,14 +208,15 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            var rawUser = sessionStorage.getItem('iipmp_user_name') || sessionStorage.getItem('iipmp_user_email') || 'Admin';
-            var role = sessionStorage.getItem('iipmp_user_role') || 'Ministry Official';
+            var djangoUser = '{{ request.user.first_name|escapejs }}' || '{{ request.user.email|escapejs }}' || '{{ request.user.username|escapejs }}';
+            var rawUser = (djangoUser && djangoUser.trim() !== '') ? djangoUser : (sessionStorage.getItem('iipmp_user_name') || sessionStorage.getItem('iipmp_user_email') || 'Aditya Das');
+            var role = '{{ request.user.is_superuser|yesno:"Administrator,Nodal Officer" }}' || sessionStorage.getItem('iipmp_user_role') || 'Ministry Official';
             
             var emailDisplay = document.getElementById('navUserEmailDisplay');
             var roleDisplay = document.getElementById('navUserRoleDisplay');
             
-            // Strip any phone number pattern e.g. "Aditya Das (6291253315)" -> "Aditya Das"
             var userName = rawUser.replace(/\s*\(\d+\)$/, '').split('@')[0].trim();
+            if (!userName) userName = 'Aditya Das';
             
             if (emailDisplay) emailDisplay.textContent = userName;
             if (roleDisplay) roleDisplay.textContent = 'Role: ' + role;
