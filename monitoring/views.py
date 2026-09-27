@@ -1,6 +1,8 @@
+import os
 import json
 import csv
 import random
+import requests
 from io import StringIO
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -14,7 +16,6 @@ from django.db.models import Sum, Avg, Count, Q
 from django.http import JsonResponse
 from django.utils import timezone
 from django.core.cache import cache
-from django.core.mail import send_mail
 from django.conf import settings
 import logging
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -885,32 +886,36 @@ def login_view(request):
         request.session['pending_otp_attempts'] = 0
         request.session[cache_sent_key] = now_ts
 
-        # Send OTP email using Gmail SMTP
-        try:
-            subject = "IIPMP Portal - Your OTP Verification Code"
-            body = f"""Dear User,
+        # Send OTP email via Brevo (Sendinblue) HTTP API
+        brevo_api_key = getattr(settings, 'BREVO_API_KEY', None) or os.environ.get('BREVO_API_KEY', '')
+        sender_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or os.environ.get('DEFAULT_FROM_EMAIL', 'Jharna0710@gmail.com')
 
-Your 6-digit Verification OTP code for logging into the Integrated Infrastructure Project Monitoring Portal (IIPMP) is:
-
-OTP: {otp_code}
-
-This code is valid for 10 minutes. Please do not share this OTP with anyone.
-
-Regards,
-Government of India - IIPMP Team
-"""
-            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', 'Jharna0710@gmail.com')
-            send_mail(
-                subject=subject,
-                message=body,
-                from_email=from_email,
-                recipient_list=[email],
-                fail_silently=False,
-            )
-            messages.success(request, f"A 6-digit OTP code has been sent to {email}. Please check your email inbox.")
-        except Exception as e:
-            logger.warning(f"Failed to send email to {email}: {e}")
-            messages.warning(request, f"OTP Code: {otp_code} (SMTP Notice: {e})")
+        if not brevo_api_key:
+            logger.warning(f"BREVO_API_KEY is not set. Demo Mode OTP for {email} is {otp_code}")
+            messages.info(request, f"A 6-digit OTP code has been generated. (Demo Mode: Your OTP is {otp_code})")
+        else:
+            try:
+                brevo_url = "https://api.brevo.com/v3/smtp/email"
+                headers = {
+                    "api-key": brevo_api_key,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                }
+                payload = {
+                    "sender": {"name": "IIPMP", "email": sender_email},
+                    "to": [{"email": email}],
+                    "subject": "Your IIPMP OTP Code",
+                    "htmlContent": f"<p>Your 6-digit verification OTP is <b style='font-size: 20px; color: #003366;'>{otp_code}</b>. It expires in 10 minutes.</p>"
+                }
+                response = requests.post(brevo_url, headers=headers, json=payload, timeout=10)
+                if response.status_code in (200, 201, 202):
+                    messages.success(request, f"A 6-digit OTP code has been sent to {email}. Please check your email inbox.")
+                else:
+                    logger.error(f"Brevo API error status ({response.status_code}): {response.text}")
+                    messages.error(request, "Failed to send OTP, please try again.")
+            except Exception as e:
+                logger.exception(f"Exception calling Brevo API for {email}: {e}")
+                messages.error(request, "Failed to send OTP, please try again.")
 
         context = {
             'show_otp': True,
