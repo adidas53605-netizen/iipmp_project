@@ -768,13 +768,14 @@ def login_view(request):
                 messages.error(request, "OTP expired, please request a new one")
                 return render(request, 'login.html', {'otp_email': email})
 
-            # Expiry check (5-10 minutes)
+            # Expiry check (5 minutes)
             if now_ts > pending_expires:
                 messages.error(request, "OTP expired, please request a new one")
                 context = {
                     'show_otp': True,
                     'otp_email': email,
                     'otp_expired': True,
+                    'otp_expires_ts': int(pending_expires * 1000) if pending_expires else 0,
                 }
                 return render(request, 'login.html', context)
 
@@ -783,7 +784,7 @@ def login_view(request):
                 attempts += 1
                 if otp_data:
                     otp_data['attempts'] = attempts
-                    cache.set(f"otp_data_{email}", otp_data, timeout=600)
+                    cache.set(f"otp_data_{email}", otp_data, timeout=300)
                 request.session['pending_otp_attempts'] = attempts
 
                 if attempts >= 5:
@@ -799,6 +800,7 @@ def login_view(request):
                         'show_otp': True,
                         'otp_email': email,
                         'otp_attempts': remaining_tries,
+                        'otp_expires_ts': int(pending_expires * 1000) if pending_expires else 0,
                     }
                     return render(request, 'login.html', context)
 
@@ -852,9 +854,14 @@ def login_view(request):
         # Protection 1: Spam limit (max 1 OTP request per email per 60 seconds)
         cache_sent_key = f"otp_sent_{email}"
         last_sent = cache.get(cache_sent_key) or request.session.get(cache_sent_key)
+        pending_exp_ts = request.session.get('pending_otp_expires', 0)
         if last_sent and (now_ts - last_sent) < 60:
             messages.error(request, "Please wait 60 seconds before requesting a new OTP.")
-            return render(request, 'login.html', {'show_otp': True, 'otp_email': email})
+            return render(request, 'login.html', {
+                'show_otp': True,
+                'otp_email': email,
+                'otp_expires_ts': int(pending_exp_ts * 1000) if pending_exp_ts else 0,
+            })
 
         # Protection 2: Check Lockout (locked after 5 wrong tries for 10 minutes)
         cache_lock_key = f"otp_locked_{email}"
@@ -864,9 +871,9 @@ def login_view(request):
             messages.error(request, f"Account locked due to 5 wrong tries. Please try again after {remaining_mins} minute(s).")
             return render(request, 'login.html', {'otp_email': email})
 
-        # Generate 6-digit numeric OTP
+        # Generate 6-digit numeric OTP (5 minutes expiry)
         otp_code = f"{random.randint(100000, 999999)}"
-        expires_at = now_ts + (10 * 60) # 10 minutes expiry
+        expires_at = now_ts + (5 * 60) # 5 minutes expiry
 
         otp_data = {
             'email': email,
@@ -875,7 +882,7 @@ def login_view(request):
             'created_at': now_ts,
             'attempts': 0,
         }
-        cache.set(f"otp_data_{email}", otp_data, timeout=600)
+        cache.set(f"otp_data_{email}", otp_data, timeout=300)
         cache.set(cache_sent_key, now_ts, timeout=60)
 
         request.session['pending_otp_email'] = email
@@ -907,7 +914,7 @@ def login_view(request):
                     "sender": {"name": "IIPMP", "email": sender_email},
                     "to": [{"email": email}],
                     "subject": "Your IIPMP OTP Code",
-                    "htmlContent": f"<p>Your 6-digit verification OTP is <b style='font-size: 20px; color: #003366;'>{otp_code}</b>. It expires in 10 minutes.</p>"
+                    "htmlContent": f"<p>Your 6-digit verification OTP is <b style='font-size: 20px; color: #003366;'>{otp_code}</b>. It expires in 5 minutes.</p>"
                 }
                 print(f"[BREVO EMAIL API] Sending POST to {brevo_url} for {email}...")
                 response = requests.post(brevo_url, headers=headers, json=payload, timeout=10)
@@ -928,8 +935,8 @@ def login_view(request):
             'show_otp': True,
             'otp_email': email,
             'otp_attempts': 5,
+            'otp_expires_ts': int(expires_at * 1000),
         }
-        return render(request, 'login.html', context)
         return render(request, 'login.html', context)
 
     return render(request, 'login.html')

@@ -244,7 +244,7 @@
                             <input type="text" class="form-control font-monospace text-center fs-4" id="otpInput" name="otp_code" placeholder="6-digit code" maxlength="6" required autocomplete="off">
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
-                            <span>Valid for: <strong id="otpTimerDisplay" class="text-danger">10:00</strong></span>
+                            <span>Valid for: <strong id="otpTimerDisplay" class="text-danger fw-bold">05:00</strong></span>
                             <span>Attempts left: <strong id="otpAttemptsDisplay" class="text-dark">{{ otp_attempts|default:'5' }}/5</strong></span>
                         </div>
                     </div>
@@ -692,31 +692,43 @@
     // =========================================================
     // 6. OTP VERIFICATION HANDLERS & TIMERS
     // =========================================================
-    let currentOtpState = null;
     let otpTimerInterval = null;
     let resendCooldownInterval = null;
 
-    function startOtpTimer() {
+    function initOtpCountdown(expiresTimestampMs) {
         if (otpTimerInterval) clearInterval(otpTimerInterval);
         const display = document.getElementById('otpTimerDisplay');
+        const submitBtn = document.getElementById('otpSubmitBtn');
+        if (!display) return;
 
-        otpTimerInterval = setInterval(() => {
-            if (!currentOtpState) {
+        const targetTime = (expiresTimestampMs && Number(expiresTimestampMs) > 0)
+            ? Number(expiresTimestampMs)
+            : (Date.now() + 5 * 60 * 1000);
+
+        function updateTimer() {
+            const now = Date.now();
+            const remainingSecs = Math.max(0, Math.floor((targetTime - now) / 1000));
+            const mins = String(Math.floor(remainingSecs / 60)).padStart(2, '0');
+            const secs = String(remainingSecs % 60).padStart(2, '0');
+
+            if (remainingSecs > 0) {
+                display.textContent = `${mins}:${secs}`;
+                display.className = 'text-danger fw-bold';
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                }
+            } else {
+                display.textContent = '00:00 (Expired)';
+                display.className = 'text-danger fw-bold';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                }
                 clearInterval(otpTimerInterval);
-                return;
             }
+        }
 
-            const remaining = Math.max(0, Math.floor((currentOtpState.expiresAt - Date.now()) / 1000));
-            const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
-            const secs = String(remaining % 60).padStart(2, '0');
-
-            if (display) display.textContent = `${mins}:${secs}`;
-
-            if (remaining <= 0) {
-                clearInterval(otpTimerInterval);
-                showError('OTP expired after 5 minutes. Please click Resend OTP or start again.');
-            }
-        }, 1000);
+        updateTimer();
+        otpTimerInterval = setInterval(updateTimer, 1000);
     }
 
     function startResendCooldown() {
@@ -919,10 +931,12 @@
 
         {% if show_otp %}
         const serverOtpEmail = "{{ otp_email|escapejs }}";
+        const serverOtpExpiresTs = Number("{{ otp_expires_ts|default:0 }}");
         const targetEmailEl = document.getElementById('otpTargetEmailDisplay');
         if (targetEmailEl && serverOtpEmail) {
             targetEmailEl.textContent = serverOtpEmail;
         }
+        initOtpCountdown(serverOtpExpiresTs);
         {% endif %}
     });
 </script>

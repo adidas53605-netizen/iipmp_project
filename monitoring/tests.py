@@ -71,6 +71,27 @@ class SecurityTestCase(TestCase):
         resp_correct = self.client.post(login_url, {'step': 'verify_otp', 'email': email, 'otp_code': otp_code})
         self.assertRedirects(resp_correct, reverse('dashboard'))
 
+    def test_expired_otp_rejection(self):
+        login_url = reverse('login')
+        email = 'expired_test@iipmp.gov.in'
+        # Request OTP
+        self.client.post(login_url, {'email': email, 'step': 'request_otp'})
+        otp_data = cache.get(f"otp_data_{email}")
+        self.assertIsNotNone(otp_data)
+        otp_code = otp_data['code']
+        # Set expiry to past timestamp in cache and session
+        otp_data['expires_at'] = 0
+        cache.set(f"otp_data_{email}", otp_data, timeout=300)
+
+        session = self.client.session
+        session['pending_otp_expires'] = 0
+        session.save()
+
+        # Attempt verification -> Backend should reject with 'OTP expired'
+        response = self.client.post(login_url, {'step': 'verify_otp', 'email': email, 'otp_code': otp_code})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "OTP expired")
+
     def test_rbac_access_control(self):
         # Field officer trying to access project create page should be denied (403)
         self.client.login(username='officer1', password='Password@123')
