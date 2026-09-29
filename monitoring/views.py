@@ -88,32 +88,16 @@ def dashboard(request):
     new_added_count = recent_count if (0 < recent_count < (total_projects or 1)) else 2
     
     total_approved_cost = float(projects.aggregate(Sum('approved_cost'))['approved_cost__sum'] or 50000.0)
-    total_expenditure = float(projects.aggregate(Sum('expenditure'))['expenditure__sum'] or 34220.0)
-    avg_progress = round(float(projects.aggregate(Avg('physical_progress'))['physical_progress__avg'] or 61.3), 1)
+    total_expenditure = float(projects.aggregate(Sum('expenditure'))['expenditure__sum'] or 32956.0)
+    avg_progress = round(float(projects.aggregate(Avg('physical_progress'))['physical_progress__avg'] or 60.8), 1)
     years_to_finish = 5
-
-    if total_projects >= 40:
-        ongoing_count = 5
-        completed_count = 6
-        delayed_count = 10
-        not_started_count = 2
-        at_risk_count = 15
-        new_added_count = 2
-        total_approved_cost = 50000.0
-        total_expenditure = 34220.0
-        avg_progress = 61.3
-
-    # Donut chart primary status breakdown (must sum to total_projects)
-    status_on_hold_segment = total_projects - (ongoing_count + completed_count + delayed_count)
-    if status_on_hold_segment < 0:
-        status_on_hold_segment = not_started_count
 
     status_data = json.dumps({
         'labels': ['Ongoing', 'Completed', 'Delayed', 'On Hold'],
-        'data': [ongoing_count, completed_count, delayed_count, status_on_hold_segment]
+        'data': [ongoing_count, completed_count, delayed_count, not_started_count]
     })
 
-    # District distribution for West Bengal
+    # District distribution for West Bengal / Regions
     district_counts = list(projects.values('district').annotate(count=Count('id')).order_by('-count')[:6])
     state_data = json.dumps({
         'labels': [d['district'] or 'Other' for d in district_counts],
@@ -181,24 +165,9 @@ def api_dashboard(request):
     new_added_count = recent_count if (0 < recent_count < (total_projects or 1)) else 2
 
     total_approved_cost = float(projects.aggregate(Sum('approved_cost'))['approved_cost__sum'] or 50000.0)
-    total_expenditure = float(projects.aggregate(Sum('expenditure'))['expenditure__sum'] or 34220.0)
-    avg_progress = round(float(projects.aggregate(Avg('physical_progress'))['physical_progress__avg'] or 61.3), 1)
+    total_expenditure = float(projects.aggregate(Sum('expenditure'))['expenditure__sum'] or 32956.0)
+    avg_progress = round(float(projects.aggregate(Avg('physical_progress'))['physical_progress__avg'] or 60.8), 1)
     years_to_finish = 5
-
-    if total_projects >= 40:
-        ongoing_count = 5
-        completed_count = 6
-        delayed_count = 10
-        not_started_count = 2
-        at_risk_count = 15
-        new_added_count = 2
-        total_approved_cost = 50000.0
-        total_expenditure = 34220.0
-        avg_progress = 61.3
-
-    status_on_hold_segment = total_projects - (ongoing_count + completed_count + delayed_count)
-    if status_on_hold_segment < 0:
-        status_on_hold_segment = not_started_count
 
     return JsonResponse({
         'total_projects': total_projects,
@@ -214,7 +183,7 @@ def api_dashboard(request):
                 ongoing_count,
                 completed_count,
                 delayed_count,
-                status_on_hold_segment
+                not_started_count
             ]
         },
         'total_approved_cost': total_approved_cost,
@@ -237,23 +206,23 @@ def export_dashboard_csv(request):
     avg_prog = round(float(projects.aggregate(Avg('physical_progress'))['physical_progress__avg'] or 0), 1)
 
     writer.writerow(['IIPMP - Integrated Infrastructure Project Monitoring Portal'])
-    writer.writerow(['Dashboard Executive Summary - West Bengal'])
+    writer.writerow(['Dashboard Executive Summary'])
     writer.writerow([])
     writer.writerow(['Metric', 'Value'])
     writer.writerow(['Total Projects', projects.count()])
     writer.writerow(['Ongoing Projects', projects.filter(status='ongoing').count()])
     writer.writerow(['Completed Projects', projects.filter(status='completed').count()])
-    writer.writerow(['Delayed Projects', len(get_delayed_projects()) if projects.count() >= 40 else projects.filter(status='delayed').count()])
+    writer.writerow(['Delayed Projects', projects.filter(status='delayed').count()])
     writer.writerow(['On Hold Projects', projects.filter(status='not_started').count()])
     writer.writerow(['At Risk Projects', projects.filter(risk_level='high').count()])
     writer.writerow(['Approved Cost (Cr)', f'₹ {total_approved:,.1f} Cr'])
     writer.writerow(['Total Expenditure (Cr)', f'₹ {total_exp:,.1f} Cr'])
     writer.writerow(['Average Progress (%)', f'{avg_prog}%'])
     writer.writerow([])
-    writer.writerow(['Project ID', 'Project Name', 'Ministry', 'District', 'Status', 'Approved Cost (Cr)', 'Expenditure (Cr)', 'Progress (%)'])
+    writer.writerow(['Project ID', 'Project Name', 'Ministry', 'State', 'District', 'Status', 'Approved Cost (Cr)', 'Expenditure (Cr)', 'Progress (%)'])
     
     for p in projects:
-        writer.writerow([p.project_id, p.name, p.ministry, p.district or p.state, p.get_status_display(), p.approved_cost, p.expenditure, f'{p.physical_progress}%'])
+        writer.writerow([p.project_id, p.name, p.ministry, p.state, p.district or p.state, p.get_status_display(), p.approved_cost, p.expenditure, f'{p.physical_progress}%'])
     return response
 
 def project_list(request):
@@ -488,12 +457,11 @@ def analytics(request):
         'data': [float(s['total_cost'] or 0) for s in state_cost]
     }, default=str)
 
-    # Re-use dashboard data as requested
-    total_proj_count = Project.objects.count()
-    ongoing_count = 5 if total_proj_count >= 40 else Project.objects.filter(status='ongoing').count()
-    completed_count = 6 if total_proj_count >= 40 else Project.objects.filter(status='completed').count()
-    delayed_count = len(get_delayed_projects()) if total_proj_count >= 40 else Project.objects.filter(status='delayed').count()
-    not_started_count = 2 if total_proj_count >= 40 else Project.objects.filter(status='not_started').count()
+    # Re-use dynamic database status counts
+    ongoing_count = Project.objects.filter(status='ongoing').count()
+    completed_count = Project.objects.filter(status='completed').count()
+    delayed_count = Project.objects.filter(status='delayed').count()
+    not_started_count = Project.objects.filter(status='not_started').count()
     status_data = json.dumps({
         'labels': ['Ongoing', 'Completed', 'Delayed', 'Not Started'],
         'data': [ongoing_count, completed_count, delayed_count, not_started_count]
@@ -504,19 +472,19 @@ def analytics(request):
         'data': [s['count'] for s in states]
     })
 
-    # 6. Cost vs Progress Correlation Data
+    # Cost vs Progress Correlation Data
     projects = Project.objects.all()
     if projects.exists():
         cost_data = json.dumps({
-            'labels': [p.name for p in projects[:10]],
+            'labels': [p.name[:20] for p in projects[:10]],
             'approved': [float(p.approved_cost) for p in projects[:10]],
             'progress': [float(p.physical_progress) for p in projects[:10]]
         })
     else:
         cost_data = json.dumps({
-            'labels': ['Kolkata Metro Rail', 'NH-17 Widening', 'Smart City Hub', 'Port Terminal', 'Solar Grid', 'Water Pipeline'],
-            'approved': [4200, 3500, 2800, 2100, 1800, 1200],
-            'progress': [78, 65, 85, 42, 55, 30]
+            'labels': ['Project A', 'Project B'],
+            'approved': [1000, 2000],
+            'progress': [50, 75]
         })
 
     context = {
@@ -531,37 +499,33 @@ def analytics(request):
     return render(request, 'analytics.html', context)
 
 def budget_view(request):
-    total_approved = Project.objects.aggregate(Sum('approved_cost'))['approved_cost__sum'] or 65450
-    total_revised = Project.objects.aggregate(Sum('revised_cost'))['revised_cost__sum'] or 69150
-    total_expenditure = Project.objects.aggregate(Sum('expenditure'))['expenditure__sum'] or 34220
-    net_overrun = (total_revised - total_approved) if (total_revised and total_approved and total_revised > total_approved) else 3700
+    projects = Project.objects.all()
+    total_approved = float(projects.aggregate(Sum('approved_cost'))['approved_cost__sum'] or 0)
+    total_revised = float(projects.aggregate(Sum('revised_cost'))['revised_cost__sum'] or total_approved)
+    total_expenditure = float(projects.aggregate(Sum('expenditure'))['expenditure__sum'] or 0)
+    net_overrun = (total_revised - total_approved) if (total_revised and total_approved and total_revised > total_approved) else 0
 
     # Overrun projects list
     overrun_projects = []
-    for p in Project.objects.all():
+    for p in projects:
         if p.revised_cost and p.revised_cost > p.approved_cost:
             overrun_projects.append(p)
 
     # Cost comparison chart data
+    top_projects = projects.order_by('-approved_cost')[:6]
     cost_comparison = json.dumps({
-        'labels': ['Kolkata Metro', 'NH-17', 'Smart City', 'Port Terminal', 'Solar Grid'],
-        'approved': [4200, 3500, 2800, 2100, 1800],
-        'revised': [4500, 3500, 3100, 2100, 1950],
-        'expenditure': [3150, 2450, 1960, 1470, 1170]
+        'labels': [p.name[:18] for p in top_projects],
+        'approved': [float(p.approved_cost) for p in top_projects],
+        'revised': [float(p.effective_cost) for p in top_projects],
+        'expenditure': [float(p.expenditure) for p in top_projects]
     })
 
     # Ministry financial allocations
     ministry_cost = Project.objects.values('ministry').annotate(app_cost=Sum('approved_cost'))
-    if ministry_cost and len(ministry_cost) > 0:
-        ministry_allocations = json.dumps({
-            'labels': [m['ministry'] for m in ministry_cost],
-            'data': [float(m['app_cost'] or 0) for m in ministry_cost]
-        })
-    else:
-        ministry_allocations = json.dumps({
-            'labels': ['Road Transport', 'Railways', 'Power', 'Ports & Shipping', 'Urban Affairs'],
-            'data': [28000, 22000, 16000, 12000, 8000]
-        })
+    ministry_allocations = json.dumps({
+        'labels': [m['ministry'].replace('Ministry of ', '') for m in ministry_cost],
+        'data': [float(m['app_cost'] or 0) for m in ministry_cost]
+    })
 
     context = {
         'total_approved': total_approved,
@@ -610,9 +574,7 @@ def get_alerts_queryset(alert_type=None):
     alerts = Alert.objects.all().select_related('project').exclude(alert_type='delay', message__icontains='0 months').order_by('-created_at', '-id')
     if alert_type and alert_type.strip():
         alerts = alerts.filter(alert_type=alert_type.strip())
-    if Project.objects.count() >= 40:
-        return alerts[:15]
-    return alerts
+    return alerts[:15]
 
 def alerts_view(request):
     alert_type = request.GET.get('alert_type')
