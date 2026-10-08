@@ -143,25 +143,81 @@ class Alert(models.Model):
         ordering = ['-created_at']
 
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 ROLE_CHOICES = [
     ('admin', 'Admin'),
     ('ministry_official', 'Ministry Official'),
     ('field_officer', 'Field Officer'),
     ('auditor', 'Auditor'),
+    ('nodal_officer', 'Nodal Officer'),
     ('public_viewer', 'Public Viewer'),
+]
+
+DASHBOARD_VIEW_CHOICES = [
+    ('overview', 'Executive Overview'),
+    ('financial', 'Financial & Budget'),
+    ('map', 'State & Regional Map'),
+    ('analytics', 'Analytics & Risk'),
 ]
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='public_viewer')
+    full_name = models.CharField(max_length=150, blank=True, default='')
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='nodal_officer')
     phone = models.CharField(max_length=20, blank=True, default='')
+    designation = models.CharField(max_length=100, blank=True, default='')
+    ministry = models.CharField(max_length=200, blank=True, default='')
+    state = models.CharField(max_length=100, blank=True, default='')
+    employee_id = models.CharField(max_length=50, blank=True, default='')
+    photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
+    email_notifications = models.BooleanField(default=True)
+    default_dashboard_view = models.CharField(max_length=50, choices=DASHBOARD_VIEW_CHOICES, default='overview')
+    profile_completed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
     mfa_enabled = models.BooleanField(default=False)
     totp_secret = models.CharField(max_length=64, blank=True, default='')
     must_reset_password = models.BooleanField(default=False)
 
+    @property
+    def display_name(self):
+        if self.full_name and self.full_name.strip():
+            return self.full_name.strip()
+        if self.user.first_name and self.user.first_name.strip():
+            return self.user.first_name.strip()
+        if self.user.email:
+            return self.user.email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
+        return self.user.username
+
+    @property
+    def avatar_letter(self):
+        name = self.display_name
+        return name[0].upper() if name else 'U'
+
+    @property
+    def completion_percentage(self):
+        fields_to_check = [
+            self.full_name,
+            self.phone,
+            self.designation,
+            self.ministry,
+            self.state,
+            self.employee_id,
+            self.photo,
+            self.user.email,
+        ]
+        filled = sum(1 for val in fields_to_check if val)
+        return int(round((filled / len(fields_to_check)) * 100))
+
     def __str__(self):
-        return f'{self.user.username} ({self.get_role_display()})'
+        return f'{self.display_name} ({self.get_role_display()})'
+
+@receiver(post_save, sender=User)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
 
 class FailedLoginAttempt(models.Model):
     identifier = models.CharField(max_length=150, db_index=True)

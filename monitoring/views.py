@@ -20,7 +20,7 @@ from django.conf import settings
 import logging
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .models import Project, Milestone, Alert, UserProfile, FailedLoginAttempt
-from .forms import ProjectForm, MilestoneForm, CSVImportForm
+from .forms import ProjectForm, MilestoneForm, CSVImportForm, UserProfileForm, ProfileSetupForm
 from .automation import update_project_automation, compute_cost_overrun, detect_delay
 from .decorators import role_required
 
@@ -807,7 +807,9 @@ def login_view(request):
             request.session['iipmp_user_email'] = email
             request.session['iipmp_user_role'] = 'Nodal Officer' if not user.is_superuser else 'Administrator'
 
-            messages.success(request, f"Welcome to IIPMP Portal, {display_name}!")
+            profile = getattr(user, 'profile', None)
+            if profile and not profile.profile_completed:
+                return redirect('profile_setup')
             return redirect('dashboard')
 
         # ----------------------------------------------------
@@ -1109,3 +1111,58 @@ def handler404(request, exception):
 
 def handler500(request):
     return render(request, '500.html', status=500)
+
+@login_required
+def profile_view(request):
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            profile_obj = form.save()
+            if profile_obj.full_name:
+                request.user.first_name = profile_obj.full_name
+                request.user.save(update_fields=['first_name'])
+            messages.success(request, "Your profile details have been updated successfully!")
+            return redirect('profile')
+        else:
+            messages.error(request, "Please correct the errors in the profile form.")
+    else:
+        form = UserProfileForm(instance=profile)
+
+    context = {
+        'profile': profile,
+        'form': form,
+        'completion_percentage': profile.completion_percentage,
+    }
+    return render(request, 'profile.html', context)
+
+
+@login_required
+def profile_setup_view(request):
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    
+    if profile.profile_completed and request.method == 'GET':
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = ProfileSetupForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            setup_profile = form.save(commit=False)
+            setup_profile.profile_completed = True
+            setup_profile.save()
+            if setup_profile.full_name:
+                request.user.first_name = setup_profile.full_name
+                request.user.save(update_fields=['first_name'])
+            messages.success(request, "Profile setup complete! Welcome to the IIPMP Portal.")
+            return redirect('dashboard')
+        else:
+            messages.error(request, "Please complete all required fields correctly.")
+    else:
+        form = ProfileSetupForm(instance=profile)
+
+    context = {
+        'profile': profile,
+        'form': form,
+    }
+    return render(request, 'profile_setup.html', context)

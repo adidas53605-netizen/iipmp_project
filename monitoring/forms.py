@@ -91,3 +91,124 @@ class CSVImportForm(forms.Form):
             if not csv_file.name.endswith('.csv'):
                 raise forms.ValidationError("File must be a CSV.")
         return csv_file
+
+import re
+from .models import UserProfile, DASHBOARD_VIEW_CHOICES
+
+STATE_CHOICES = [
+    ('', 'Select State/UT'),
+    ('West Bengal', 'West Bengal'),
+    ('Maharashtra', 'Maharashtra'),
+    ('Karnataka', 'Karnataka'),
+    ('Uttar Pradesh', 'Uttar Pradesh'),
+    ('Gujarat', 'Gujarat'),
+    ('Tamil Nadu', 'Tamil Nadu'),
+    ('Odisha', 'Odisha'),
+    ('Rajasthan', 'Rajasthan'),
+    ('Telangana', 'Telangana'),
+    ('Andhra Pradesh', 'Andhra Pradesh'),
+    ('Delhi', 'Delhi'),
+    ('Assam', 'Assam'),
+    ('Bihar', 'Bihar'),
+    ('Kerala', 'Kerala'),
+    ('Madhya Pradesh', 'Madhya Pradesh'),
+    ('Punjab', 'Punjab'),
+    ('Other State/UT', 'Other State/UT'),
+]
+
+class UserProfileForm(forms.ModelForm):
+    state = forms.ChoiceField(choices=STATE_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+    ministry = forms.ChoiceField(choices=MINISTRY_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            'full_name', 'phone', 'designation', 'ministry', 'state',
+            'employee_id', 'photo', 'email_notifications', 'default_dashboard_view'
+        ]
+        widgets = {
+            'full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Aditya Das'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 9876543210'}),
+            'designation': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Senior Project Director'}),
+            'employee_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. EMP-2026-889'}),
+            'photo': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'email_notifications': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'default_dashboard_view': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['email_notifications'].required = False
+        self.fields['full_name'].required = False
+        self.fields['phone'].required = False
+        self.fields['designation'].required = False
+        self.fields['ministry'].required = False
+        self.fields['state'].required = False
+        self.fields['employee_id'].required = False
+        self.fields['photo'].required = False
+
+    def clean_phone(self):
+        phone = (self.cleaned_data.get('phone') or '').strip()
+        if phone:
+            digits = re.sub(r'\D', '', phone)
+            if len(digits) == 12 and digits.startswith('91'):
+                digits = digits[2:]
+            if len(digits) != 10 or not digits.startswith(('6', '7', '8', '9')):
+                raise forms.ValidationError("Please enter a valid 10-digit Indian phone number (e.g. 9876543210).")
+            return digits
+        return ''
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get('photo')
+        if photo and hasattr(photo, 'size'):
+            if photo.size > 2 * 1024 * 1024:
+                raise forms.ValidationError("Image file size cannot exceed 2 MB.")
+            ext = photo.name.split('.')[-1].lower()
+            if ext not in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
+                raise forms.ValidationError("Unsupported image format. Upload JPG, PNG, WEBP, or GIF.")
+        return photo
+
+
+class ProfileSetupForm(forms.ModelForm):
+    state = forms.ChoiceField(choices=STATE_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+    ministry = forms.ChoiceField(choices=MINISTRY_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+
+    class Meta:
+        model = UserProfile
+        fields = ['full_name', 'designation', 'ministry', 'state', 'phone', 'photo']
+        widgets = {
+            'full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter your full name'}),
+            'designation': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Executive Engineer'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional 10-digit phone number'}),
+            'photo': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['full_name'].required = True
+        self.fields['designation'].required = True
+        self.fields['ministry'].required = True
+        self.fields['state'].required = True
+        self.fields['phone'].required = False
+        self.fields['photo'].required = False
+
+    def clean_phone(self):
+        phone = (self.cleaned_data.get('phone') or '').strip()
+        if phone:
+            digits = re.sub(r'\D', '', phone)
+            if len(digits) == 12 and digits.startswith('91'):
+                digits = digits[2:]
+            if len(digits) != 10 or not digits.startswith(('6', '7', '8', '9')):
+                raise forms.ValidationError("Please enter a valid 10-digit Indian phone number.")
+            return digits
+        return ''
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get('photo')
+        if photo and hasattr(photo, 'size'):
+            if photo.size > 2 * 1024 * 1024:
+                raise forms.ValidationError("Image file size cannot exceed 2 MB.")
+            ext = photo.name.split('.')[-1].lower()
+            if ext not in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
+                raise forms.ValidationError("Unsupported image format. Upload JPG, PNG, WEBP, or GIF.")
+        return photo

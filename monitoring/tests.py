@@ -12,10 +12,16 @@ class SecurityTestCase(TestCase):
         self.client = Client()
         self.validator = ComplexPasswordValidator()
         self.user = User.objects.create_user(username='officer1', email='officer1@iipmp.gov.in', password='Password@123')
-        self.profile = UserProfile.objects.create(user=self.user, role='field_officer')
+        self.profile, _ = UserProfile.objects.get_or_create(user=self.user)
+        self.profile.role = 'field_officer'
+        self.profile.profile_completed = True
+        self.profile.save()
 
         self.admin = User.objects.create_superuser(username='admin1', password='AdminPassword@123', email='admin@iipmp.gov.in')
-        self.admin_profile = UserProfile.objects.create(user=self.admin, role='admin')
+        self.admin_profile, _ = UserProfile.objects.get_or_create(user=self.admin)
+        self.admin_profile.role = 'admin'
+        self.admin_profile.profile_completed = True
+        self.admin_profile.save()
 
     def test_password_validator_valid(self):
         try:
@@ -67,9 +73,9 @@ class SecurityTestCase(TestCase):
         self.assertEqual(resp_wrong.status_code, 200)
         self.assertContains(resp_wrong, "Invalid OTP")
 
-        # 3. Correct OTP -> Should log in and redirect to dashboard
+        # 3. Correct OTP for new user -> Should log in and redirect to profile_setup (first-time onboarding)
         resp_correct = self.client.post(login_url, {'step': 'verify_otp', 'email': email, 'otp_code': otp_code})
-        self.assertRedirects(resp_correct, reverse('dashboard'))
+        self.assertRedirects(resp_correct, reverse('profile_setup'))
 
     def test_expired_otp_rejection(self):
         login_url = reverse('login')
@@ -149,7 +155,11 @@ class SecurityTestCase(TestCase):
         otp_code = otp_data['code']
 
         resp_verify = self.client.post(login_url, {'step': 'verify_otp', 'email': email, 'otp_code': otp_code})
-        self.assertRedirects(resp_verify, dashboard_url)
+        self.assertRedirects(resp_verify, reverse('profile_setup'))
+
+        user = User.objects.get(email=email)
+        user.profile.profile_completed = True
+        user.profile.save()
 
         # Verify session expiry is set to 30 days (2592000 seconds)
         session = self.client.session
@@ -163,5 +173,61 @@ class SecurityTestCase(TestCase):
         resp_logout = self.client.get(logout_url)
         self.assertRedirects(resp_logout, login_url)
         self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_user_profile_completion_and_views(self):
+        self.client.login(username='officer1', password='Password@123')
+        resp = self.client.get(reverse('profile'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "User Profile")
+
+        # Update profile
+        update_data = {
+            'full_name': 'Aditya Das',
+            'phone': '9876543210',
+            'designation': 'Senior Director',
+            'ministry': 'Ministry of Power',
+            'state': 'West Bengal',
+            'employee_id': 'EMP-2026-99',
+            'default_dashboard_view': 'overview',
+            'email_notifications': 'on'
+        }
+        post_resp = self.client.post(reverse('profile'), update_data)
+        self.assertRedirects(post_resp, reverse('profile'))
+
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.full_name, 'Aditya Das')
+        self.assertEqual(self.profile.phone, '9876543210')
+        self.assertEqual(self.profile.designation, 'Senior Director')
+        self.assertGreaterEqual(self.profile.completion_percentage, 80)
+
+    def test_profile_setup_middleware_gate(self):
+        # Create user without profile completed
+        new_user = User.objects.create_user(username='newbie', email='newbie@iipmp.gov.in', password='Password@123')
+        new_profile = UserProfile.objects.get(user=new_user)
+        self.assertFalse(new_profile.profile_completed)
+
+        self.client.login(username='newbie', password='Password@123')
+        # Accessing dashboard before setup should redirect to /profile/setup/
+        resp_gate = self.client.get(reverse('dashboard'))
+        self.assertRedirects(resp_gate, reverse('profile_setup'))
+
+        # Submit profile setup form
+        setup_data = {
+            'full_name': 'Newbie Officer',
+            'designation': 'Assistant Nodal Officer',
+            'ministry': 'Ministry of Railways',
+            'state': 'West Bengal',
+            'phone': '9123456789'
+        }
+        setup_resp = self.client.post(reverse('profile_setup'), setup_data)
+        self.assertRedirects(setup_resp, reverse('dashboard'))
+
+        new_profile.refresh_from_db()
+        self.assertTrue(new_profile.profile_completed)
+
+        # Accessing dashboard now should succeed
+        resp_dashboard = self.client.get(reverse('dashboard'))
+        self.assertEqual(resp_dashboard.status_code, 200)
+
 
 

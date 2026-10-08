@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Welcome to IIPMP - Complete Your Profile{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            
+            <!-- Welcome Header Card -->
+            <div class="card shadow-lg border-0 rounded-4 overflow-hidden mb-4">
+                <div class="gov-stripe">
+                    <div class="saffron"></div>
+                    <div class="white"></div>
+                    <div class="green"></div>
+                </div>
+                <div class="navy-bg text-white p-4 text-center">
+                    <div class="mb-3">
+                        <span class="rounded-circle bg-warning text-dark d-inline-flex align-items-center justify-content-center fw-bold shadow-sm" style="width: 64px; height: 64px; font-size: 1.8rem;">
+                            <i class="fa-solid fa-user-gear"></i>
+                        </span>
+                    </div>
+                    <h3 class="fw-bold mb-1">Welcome to IIPMP Portal!</h3>
+                    <p class="opacity-75 mb-0">Please complete your official profile setup before proceeding to the monitoring portal dashboard.</p>
+                </div>
+                
+                <div class="card-body p-4 p-md-5 bg-white">
+                    <div class="alert alert-info border-0 shadow-sm mb-4 d-flex align-items-center gap-3">
+                        <i class="fa-solid fa-circle-info fa-2x text-info"></i>
+                        <div>
+                            <strong>First-Time Account Setup Required</strong>
+                            <div class="small text-muted">Provide your official details to enable role-based project tracking and ministry reporting.</div>
+                        </div>
+                    </div>
+
+                    <form method="POST" enctype="multipart/form-data" action="{% url 'profile_setup' %}" novalidate>
+                        {% csrf_token %}
+
+                        <div class="row g-3">
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.full_name.id_for_label }}" class="form-label fw-bold">Full Name <span class="text-danger">*</span></label>
+                                {{ form.full_name }}
+                                {% if form.full_name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.full_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.designation.id_for_label }}" class="form-label fw-bold">Designation <span class="text-danger">*</span></label>
+                                {{ form.designation }}
+                                {% if form.designation.errors %}
+                                    <div class="text-danger small mt-1">{{ form.designation.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.phone.id_for_label }}" class="form-label fw-bold">Phone Number</label>
+                                {{ form.phone }}
+                                <small class="text-muted">10-digit mobile number</small>
+                                {% if form.phone.errors %}
+                                    <div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.ministry.id_for_label }}" class="form-label fw-bold">Department / Ministry <span class="text-danger">*</span></label>
+                                {{ form.ministry }}
+                                {% if form.ministry.errors %}
+                                    <div class="text-danger small mt-1">{{ form.ministry.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.state.id_for_label }}" class="form-label fw-bold">State / UT <span class="text-danger">*</span></label>
+                                {{ form.state }}
+                                {% if form.state.errors %}
+                                    <div class="text-danger small mt-1">{{ form.state.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-12 mb-4">
+                                <label for="{{ form.photo.id_for_label }}" class="form-label fw-bold">Profile Photo (Optional)</label>
+                                {{ form.photo }}
+                                <small class="text-muted">Upload JPG, PNG, WEBP or GIF (Max size 2 MB)</small>
+                                {% if form.photo.errors %}
+                                    <div class="text-danger small mt-1">{{ form.photo.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm">
+                                <i class="fa-solid fa-circle-check me-2"></i> Complete Setup & Access Dashboard
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

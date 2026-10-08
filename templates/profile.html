@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}User Profile - IIPMP{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">User Profile</li>
+        </ol>
+    </nav>
+
+    <!-- Header Card / Profile Summary -->
+    <div class="card shadow-sm border-0 mb-4 navy-bg text-white overflow-hidden">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="position-relative">
+                        {% if profile.photo %}
+                            <img src="{{ profile.photo.url }}" alt="{{ profile.display_name }}" class="rounded-circle border border-3 border-white object-fit-cover shadow" id="profileHeaderAvatar" style="width: 100px; height: 100px;">
+                        {% else %}
+                            <div class="rounded-circle border border-3 border-white bg-warning text-dark d-flex align-items-center justify-content-center fw-bold shadow" id="profileHeaderFallback" style="width: 100px; height: 100px; font-size: 2.5rem;">
+                                {{ profile.avatar_letter }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col mt-3 mt-md-0">
+                    <h3 class="fw-bold mb-1">{{ profile.display_name }}</h3>
+                    <p class="mb-2 opacity-75">
+                        <i class="fa-solid fa-briefcase me-1"></i> {{ profile.designation|default:"Nodal Officer" }} 
+                        {% if profile.ministry %}&bull; {{ profile.ministry }}{% endif %}
+                        {% if profile.state %}&bull; {{ profile.state }}{% endif %}
+                    </p>
+                    <div class="d-flex flex-wrap align-items-center gap-3 text-white-50 small">
+                        <span><i class="fa-solid fa-envelope me-1"></i> {{ request.user.email }}</span>
+                        {% if profile.employee_id %}
+                            <span><i class="fa-solid fa-id-card me-1"></i> ID: {{ profile.employee_id }}</span>
+                        {% endif %}
+                        <span><i class="fa-solid fa-calendar-check me-1"></i> Joined: {{ request.user.date_joined|date:"M Y" }}</span>
+                    </div>
+                </div>
+                <!-- Profile Completion Progress Bar -->
+                <div class="col-md-4 mt-3 mt-md-0">
+                    <div class="bg-white bg-opacity-10 p-3 rounded-3 border border-white border-opacity-10">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small fw-semibold">Profile Completion</span>
+                            <span class="badge bg-warning text-dark fw-bold">{{ completion_percentage }}%</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar {% if completion_percentage == 100 %}bg-success{% else %}bg-warning{% endif %}" role="progressbar" style="width: {{ completion_percentage }}%;" aria-valuenow="{{ completion_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <small class="d-block text-white-50 mt-2" style="font-size: 0.75rem;">
+                            {% if completion_percentage == 100 %}
+                                <i class="fa-solid fa-circle-check text-success me-1"></i> Profile fully complete!
+                            {% else %}
+                                Complete all profile fields for better official record-keeping.
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Profile Edit Form -->
+    <form method="POST" enctype="multipart/form-data" action="{% url 'profile' %}" novalidate>
+        {% csrf_token %}
+
+        <div class="row">
+            <!-- Navigation Tabs -->
+            <div class="col-lg-3 mb-4">
+                <div class="card shadow-sm border-0 rounded-3">
+                    <div class="card-body p-2">
+                        <div class="nav flex-column nav-pills" id="profile-tab" role="tablist" aria-orientation="vertical">
+                            <button class="nav-link active text-start py-3 px-3 d-flex align-items-center gap-2" id="v-pills-personal-tab" data-bs-toggle="pill" data-bs-target="#v-pills-personal" type="button" role="tab" aria-controls="v-pills-personal" aria-selected="true">
+                                <i class="fa-solid fa-user text-primary" style="width: 20px;"></i>
+                                <span>Personal Information</span>
+                            </button>
+                            <button class="nav-link text-start py-3 px-3 d-flex align-items-center gap-2" id="v-pills-official-tab" data-bs-toggle="pill" data-bs-target="#v-pills-official" type="button" role="tab" aria-controls="v-pills-official" aria-selected="false">
+                                <i class="fa-solid fa-building-user text-success" style="width: 20px;"></i>
+                                <span>Official Information</span>
+                            </button>
+                            <button class="nav-link text-start py-3 px-3 d-flex align-items-center gap-2" id="v-pills-account-tab" data-bs-toggle="pill" data-bs-target="#v-pills-account" type="button" role="tab" aria-controls="v-pills-account" aria-selected="false">
+                                <i class="fa-solid fa-shield-halved text-warning" style="width: 20px;"></i>
+                                <span>Account & Security</span>
+                            </button>
+                            <button class="nav-link text-start py-3 px-3 d-flex align-items-center gap-2" id="v-pills-preferences-tab" data-bs-toggle="pill" data-bs-target="#v-pills-preferences" type="button" role="tab" aria-controls="v-pills-preferences" aria-selected="false">
+                                <i class="fa-solid fa-sliders text-info" style="width: 20px;"></i>
+                                <span>Preferences</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid mt-3">
+                    <button type="submit" class="btn btn-primary btn-lg shadow-sm">
+                        <i class="fa-solid fa-floppy-disk me-2"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Contents -->
+            <div class="col-lg-9 mb-4">
+                <div class="tab-content" id="profile-tabContent">
+                    
+                    <!-- Section 1: Personal Info -->
+                    <div class="tab-pane fade show active" id="v-pills-personal" role="tabpanel" aria-labelledby="v-pills-personal-tab">
+                        <div class="card shadow-sm border-0 rounded-3">
+                            <div class="card-header bg-white py-3 border-bottom">
+                                <h5 class="mb-0 fw-bold text-dark"><i class="fa-solid fa-user me-2 text-primary"></i> Personal Information</h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="row g-3">
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label fw-bold">Profile Photo</label>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div id="photoPreviewContainer">
+                                                {% if profile.photo %}
+                                                    <img src="{{ profile.photo.url }}" alt="Preview" class="rounded-circle object-fit-cover border shadow-sm" id="photoPreview" style="width: 70px; height: 70px;">
+                                                {% else %}
+                                                    <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center text-muted fw-bold" id="photoPreviewFallback" style="width: 70px; height: 70px; font-size: 1.5rem;">
+                                                        {{ profile.avatar_letter }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                {{ form.photo }}
+                                                <small class="text-muted d-block mt-1">Upload JPG, PNG, WEBP, or GIF image (Max file size: 2 MB).</small>
+                                                {% if form.photo.errors %}
+                                                    <div class="text-danger small mt-1">{{ form.photo.errors.0 }}</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.full_name.id_for_label }}" class="form-label fw-bold">Full Name</label>
+                                        {{ form.full_name }}
+                                        {% if form.full_name.errors %}
+                                            <div class="text-danger small mt-1">{{ form.full_name.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.phone.id_for_label }}" class="form-label fw-bold">Phone Number (10 Digits)</label>
+                                        {{ form.phone }}
+                                        <small class="text-muted">Format: 10-digit Indian mobile number</small>
+                                        {% if form.phone.errors %}
+                                            <div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Official Info -->
+                    <div class="tab-pane fade" id="v-pills-official" role="tabpanel" aria-labelledby="v-pills-official-tab">
+                        <div class="card shadow-sm border-0 rounded-3">
+                            <div class="card-header bg-white py-3 border-bottom">
+                                <h5 class="mb-0 fw-bold text-dark"><i class="fa-solid fa-building-user me-2 text-success"></i> Official & Government Details</h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="row g-3">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.designation.id_for_label }}" class="form-label fw-bold">Designation</label>
+                                        {{ form.designation }}
+                                        {% if form.designation.errors %}
+                                            <div class="text-danger small mt-1">{{ form.designation.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.employee_id.id_for_label }}" class="form-label fw-bold">Employee / Officer ID</label>
+                                        {{ form.employee_id }}
+                                        {% if form.employee_id.errors %}
+                                            <div class="text-danger small mt-1">{{ form.employee_id.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.ministry.id_for_label }}" class="form-label fw-bold">Department / Ministry</label>
+                                        {{ form.ministry }}
+                                        {% if form.ministry.errors %}
+                                            <div class="text-danger small mt-1">{{ form.ministry.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.state.id_for_label }}" class="form-label fw-bold">State / UT Jurisdiction</label>
+                                        {{ form.state }}
+                                        {% if form.state.errors %}
+                                            <div class="text-danger small mt-1">{{ form.state.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Account Info -->
+                    <div class="tab-pane fade" id="v-pills-account" role="tabpanel" aria-labelledby="v-pills-account-tab">
+                        <div class="card shadow-sm border-0 rounded-3">
+                            <div class="card-header bg-white py-3 border-bottom">
+                                <h5 class="mb-0 fw-bold text-dark"><i class="fa-solid fa-shield-halved me-2 text-warning"></i> Account Credentials & Security</h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="row g-3">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Registered Email Address</label>
+                                        <input type="email" class="form-control bg-light" value="{{ request.user.email }}" readonly disabled>
+                                        <small class="text-muted"><i class="fa-solid fa-lock me-1"></i> Email is verified via OTP login and cannot be modified directly.</small>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">User Role</label>
+                                        <input type="text" class="form-control bg-light" value="{% if request.user.is_superuser %}Administrator{% else %}Nodal Officer{% endif %}" readonly disabled>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Last Login Timestamp</label>
+                                        <input type="text" class="form-control bg-light" value="{{ request.user.last_login|date:'d M Y, h:i A'|default:'Active Session' }}" readonly disabled>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Account Registration Date</label>
+                                        <input type="text" class="form-control bg-light" value="{{ request.user.date_joined|date:'d M Y, h:i A' }}" readonly disabled>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Preferences -->
+                    <div class="tab-pane fade" id="v-pills-preferences" role="tabpanel" aria-labelledby="v-pills-preferences-tab">
+                        <div class="card shadow-sm border-0 rounded-3">
+                            <div class="card-header bg-white py-3 border-bottom">
+                                <h5 class="mb-0 fw-bold text-dark"><i class="fa-solid fa-sliders me-2 text-info"></i> Portal Preferences</h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="row g-3">
+                                    <div class="col-md-6 mb-4">
+                                        <label for="{{ form.default_dashboard_view.id_for_label }}" class="form-label fw-bold">Default Landing View</label>
+                                        {{ form.default_dashboard_view }}
+                                        <small class="text-muted">Select which page you want to see upon logging into IIPMP.</small>
+                                        {% if form.default_dashboard_view.errors %}
+                                            <div class="text-danger small mt-1">{{ form.default_dashboard_view.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-12 mb-3">
+                                        <div class="form-check form-switch p-3 border rounded-3 bg-light">
+                                            {{ form.email_notifications }}
+                                            <label class="form-check-label fw-bold ms-2" for="{{ form.email_notifications.id_for_label }}">
+                                                Receive Email Alerts & Monthly Summary Reports
+                                            </label>
+                                            <div class="small text-muted ms-4">When enabled, project delay alerts and high-risk status updates will be sent to your registered email.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle image preview
+        const photoInput = document.getElementById('{{ form.photo.id_for_label }}');
+        if (photoInput) {
+            photoInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 2 * 1024 * 1024) {
+                        alert('Image file size exceeds 2 MB. Please select a smaller file.');
+                        this.value = '';
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        const container = document.getElementById('photoPreviewContainer');
+                        container.innerHTML = `<img src="${evt.target.result}" alt="Preview" class="rounded-circle object-fit-cover border shadow-sm" style="width: 70px; height: 70px;">`;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // Open specific tab if URL hash exists (e.g. #preferences)
+        if (window.location.hash) {
+            const hash = window.location.hash;
+            if (hash === '#preferences') {
+                const prefTab = document.getElementById('v-pills-preferences-tab');
+                if (prefTab) {
+                    const bsTab = new bootstrap.Tab(prefTab);
+                    bsTab.show();
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

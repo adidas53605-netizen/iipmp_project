@@ -1,5 +1,11 @@
 from django.contrib import admin
-from .models import Project, Milestone, Alert
+from .models import Project, Milestone, Alert, UserProfile
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'full_name', 'role', 'ministry', 'state', 'profile_completed', 'created_at')
+    list_filter = ('role', 'profile_completed', 'ministry', 'state')
+    search_fields = ('user__username', 'user__email', 'full_name', 'employee_id')
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):

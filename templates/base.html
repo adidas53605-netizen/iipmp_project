@@ -39,7 +39,12 @@
         function iipmpLogout(e) {
             if (e) e.preventDefault();
             sessionStorage.clear();
-            window.location.href = '{% url "logout" %}';
+            var form = document.getElementById('logoutForm');
+            if (form) {
+                form.submit();
+            } else {
+                window.location.href = '{% url "logout" %}';
+            }
         }
     </script>
     {% block extra_css %}{% endblock %}
@@ -111,17 +116,60 @@
                     </a>
                     {% endif %}
                     
+                    {% if request.user.is_authenticated %}
                     <!-- Dynamic User & Logout Controls -->
                     <div class="dropdown" id="navUserDropdownArea">
-                        <button class="btn btn-outline-primary dropdown-toggle btn-sm fw-bold" type="button" id="userMenuDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fa-solid fa-user-circle me-1"></i> <span id="navUserEmailDisplay">Admin</span>
+                        <button class="btn btn-light dropdown-toggle d-flex align-items-center gap-2 border shadow-sm rounded-pill px-3 py-1" type="button" id="userMenuDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            {% if request.user.profile.photo %}
+                                <img src="{{ request.user.profile.photo.url }}" alt="{{ request.user.profile.display_name }}" class="rounded-circle object-fit-cover" style="width: 28px; height: 28px;">
+                            {% else %}
+                                <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-bold" style="width: 28px; height: 28px; font-size: 0.85rem;">
+                                    {{ request.user.profile.avatar_letter|default:"U" }}
+                                </span>
+                            {% endif %}
+                            <span class="fw-semibold text-dark small me-1" id="navUserEmailDisplay">{{ request.user.profile.display_name|default:request.user.email }}</span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userMenuDropdown">
-                            <li><span class="dropdown-item-text text-muted small" id="navUserRoleDisplay">Role: Ministry Official</span></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger fw-bold" href="#" onclick="iipmpLogout(event)"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-2" aria-labelledby="userMenuDropdown" style="min-width: 240px; border-radius: 10px;">
+                            <li class="px-3 py-2 border-bottom mb-2">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    {% if request.user.profile.photo %}
+                                        <img src="{{ request.user.profile.photo.url }}" alt="{{ request.user.profile.display_name }}" class="rounded-circle object-fit-cover" style="width: 36px; height: 36px;">
+                                    {% else %}
+                                        <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-bold" style="width: 36px; height: 36px; font-size: 1.1rem;">
+                                            {{ request.user.profile.avatar_letter|default:"U" }}
+                                        </span>
+                                    {% endif %}
+                                    <div class="overflow-hidden">
+                                        <div class="fw-bold text-dark text-truncate" style="max-width: 160px;">{{ request.user.profile.display_name|default:request.user.email }}</div>
+                                        <div class="text-muted small text-truncate" style="max-width: 160px;">{{ request.user.email }}</div>
+                                    </div>
+                                </div>
+                                <span class="badge bg-secondary opacity-75" style="font-size: 0.7rem;" id="navUserRoleDisplay">{{ request.user.profile.designation|default:"Nodal Officer" }}</span>
+                            </li>
+                            <li>
+                                <a class="dropdown-item rounded py-2 d-flex align-items-center gap-2" href="{% url 'profile' %}">
+                                    <i class="fa-solid fa-user-circle text-primary"></i> My Profile
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item rounded py-2 d-flex align-items-center gap-2" href="{% url 'profile' %}#preferences">
+                                    <i class="fa-solid fa-gear text-secondary"></i> Settings
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-2"></li>
+                            <li>
+                                <form action="{% url 'logout' %}" method="POST" class="m-0 p-0" id="logoutForm">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item rounded py-2 d-flex align-items-center gap-2 text-danger fw-semibold">
+                                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                                    </button>
+                                </form>
+                            </li>
                         </ul>
                     </div>
+                    {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-primary btn-sm fw-bold">Sign In</a>
+                    {% endif %}
                 </div>
             </div>
         </div>
