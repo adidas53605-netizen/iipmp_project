@@ -71,9 +71,11 @@ def reset_failed_attempts(identifier):
     FailedLoginAttempt.objects.filter(identifier=identifier).update(failed_count=0, locked_until=None)
 
 def home(request):
-
+    if request.user.is_authenticated:
+        return redirect('dashboard')
     return redirect('login')
 
+@login_required
 def dashboard(request):
     projects = Project.objects.all()
     total_projects = projects.count()
@@ -150,6 +152,7 @@ def dashboard(request):
     }
     return render(request, 'dashboard.html', context)
 
+@login_required
 def api_dashboard(request):
     """JSON API endpoint for dashboard data — used by the Refresh Data button."""
     projects = Project.objects.all()
@@ -193,6 +196,7 @@ def api_dashboard(request):
         'refreshed_at': date.today().isoformat()
     })
 
+@login_required
 def export_dashboard_csv(request):
     """Export dashboard project data as CSV with dynamic values."""
     import csv as csv_module
@@ -225,6 +229,7 @@ def export_dashboard_csv(request):
         writer.writerow([p.project_id, p.name, p.ministry, p.state, p.district or p.state, p.get_status_display(), p.approved_cost, p.expenditure, f'{p.physical_progress}%'])
     return response
 
+@login_required
 def project_list(request):
     projects = Project.objects.all()
     
@@ -313,6 +318,7 @@ def project_list(request):
     }
     return render(request, 'projects.html', context)
 
+@login_required
 def project_detail(request, project_id):
     project = get_object_or_404(Project, project_id=project_id)
     milestones = project.milestones.all()
@@ -423,6 +429,7 @@ def milestone_edit(request, project_id, milestone_id):
     context = {'form': form, 'project': project, 'milestone': milestone, 'action': 'Edit Milestone'}
     return render(request, 'milestone_form.html', context)
 
+@login_required
 def analytics(request):
     risk_counts = Project.objects.values('risk_level').annotate(count=Count('id'))
     risk_data = json.dumps({
@@ -498,6 +505,7 @@ def analytics(request):
     }
     return render(request, 'analytics.html', context)
 
+@login_required
 def budget_view(request):
     projects = Project.objects.all()
     total_approved = float(projects.aggregate(Sum('approved_cost'))['approved_cost__sum'] or 0)
@@ -547,6 +555,7 @@ def get_delayed_projects():
         return qs[:10]
     return qs
 
+@login_required
 def review(request):
     delayed_projects = get_delayed_projects()
     
@@ -576,12 +585,14 @@ def get_alerts_queryset(alert_type=None):
         alerts = alerts.filter(alert_type=alert_type.strip())
     return alerts[:15]
 
+@login_required
 def alerts_view(request):
     alert_type = request.GET.get('alert_type')
     alerts = get_alerts_queryset(alert_type)
     context = {'alerts': alerts}
     return render(request, 'alerts.html', context)
 
+@login_required
 def api_alerts(request):
     """JSON API endpoint for alerts — used by the frontend JS fetch integration."""
     alert_type = request.GET.get('alert_type')
@@ -607,6 +618,7 @@ def api_alerts(request):
         })
     return JsonResponse(results, safe=False)
 
+@login_required
 def help_page(request):
     projects = Project.objects.all().only('project_id', 'name').order_by('name')
     return render(request, 'help.html', {'projects': projects})
@@ -662,6 +674,7 @@ def csv_import(request):
             return redirect('database_manage')
     return redirect('database_manage')
 
+@login_required
 def search_api(request):
     q = request.GET.get('q', '').strip()
     if not q:
@@ -786,6 +799,7 @@ def login_view(request):
 
             user.backend = 'django.contrib.auth.backends.ModelBackend'
             login(request, user)
+            request.session.set_expiry(30 * 24 * 60 * 60) # 30 days persistent login
 
             display_name = user.first_name or user.username or email
             request.session['iipmp_logged_in'] = 'true'
@@ -904,6 +918,9 @@ def login_view(request):
     return render(request, 'login.html')
 
 def admin_login_view(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '').strip()
@@ -935,6 +952,7 @@ def admin_login_view(request):
 
             reset_failed_attempts(username)
             login(request, user)
+            request.session.set_expiry(30 * 24 * 60 * 60) # 30 days persistent login
             messages.success(request, f"Welcome back Admin {user.username}!")
             return redirect('database_manage')
         else:
@@ -946,10 +964,14 @@ def admin_login_view(request):
     return render(request, 'admin_login.html')
 
 
+@login_required
 def logout_view(request):
     logout(request)
-    return redirect('login')
+    response = redirect('login')
+    response.delete_cookie(settings.SESSION_COOKIE_NAME)
+    return response
 
+@login_required
 def states_view(request):
     projects = Project.objects.all()
     
@@ -1013,6 +1035,7 @@ def states_view(request):
     return render(request, 'states.html', context)
 
 
+@login_required
 def ministries_view(request):
     projects = Project.objects.all()
     

@@ -29,29 +29,16 @@
         (function() {
             var path = window.location.pathname;
             var djangoAuth = {{ request.user.is_authenticated|yesno:"true,false" }};
-            var sessionStorageAuth = sessionStorage.getItem('iipmp_logged_in') === 'true';
-            var isLoggedIn = djangoAuth || sessionStorageAuth;
-
-            if (djangoAuth && !sessionStorageAuth) {
+            if (djangoAuth) {
                 sessionStorage.setItem('iipmp_logged_in', 'true');
                 sessionStorage.setItem('iipmp_user_name', '{{ request.user.username|escapejs }}');
                 sessionStorage.setItem('iipmp_user_role', '{{ request.user.is_superuser|yesno:"Administrator,Nodal Officer" }}');
-            }
-
-            if (path !== '/login/' && path !== '/login' && path !== '/admin-login/' && path !== '/admin-login') {
-                if (!isLoggedIn) {
-                    window.location.href = '{% url "login" %}';
-                }
             }
         })();
 
         function iipmpLogout(e) {
             if (e) e.preventDefault();
-            sessionStorage.removeItem('iipmp_logged_in');
-            sessionStorage.removeItem('iipmp_user_name');
-            sessionStorage.removeItem('iipmp_user_phone');
-            sessionStorage.removeItem('iipmp_user_email');
-            sessionStorage.removeItem('iipmp_user_role');
+            sessionStorage.clear();
             window.location.href = '{% url "logout" %}';
         }
     </script>

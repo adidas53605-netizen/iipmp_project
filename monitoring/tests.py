@@ -131,3 +131,37 @@ class SecurityTestCase(TestCase):
         self.assertEqual(total, 4)
         self.assertEqual(ongoing + completed + delayed + on_hold, total)
 
+    def test_persistent_login_and_logout(self):
+        login_url = reverse('login')
+        logout_url = reverse('logout')
+        dashboard_url = reverse('dashboard')
+
+        # 1. Unauthenticated request to /dashboard/ should redirect to /login/
+        self.client.logout()
+        response_unauth = self.client.get(dashboard_url)
+        self.assertRedirects(response_unauth, f"{login_url}?next={dashboard_url}")
+
+        # 2. Login via OTP
+        email = 'persistent_user@iipmp.gov.in'
+        self.client.post(login_url, {'email': email, 'step': 'request_otp'})
+        otp_data = cache.get(f"otp_data_{email}")
+        self.assertIsNotNone(otp_data)
+        otp_code = otp_data['code']
+
+        resp_verify = self.client.post(login_url, {'step': 'verify_otp', 'email': email, 'otp_code': otp_code})
+        self.assertRedirects(resp_verify, dashboard_url)
+
+        # Verify session expiry is set to 30 days (2592000 seconds)
+        session = self.client.session
+        self.assertEqual(session.get_expiry_age(), 30 * 24 * 60 * 60)
+
+        # 3. Authenticated request to /login/ should redirect to /dashboard/
+        resp_login_visit = self.client.get(login_url)
+        self.assertRedirects(resp_login_visit, dashboard_url)
+
+        # 4. Logout should clear session, delete cookie, and redirect to /login/
+        resp_logout = self.client.get(logout_url)
+        self.assertRedirects(resp_logout, login_url)
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+
